@@ -34,8 +34,9 @@
 \titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
 \titlespacing*{\section}{0pt}{10pt}{4pt}
 
-% Colunas com quebra de linha e alinhamento à esquerda
-\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+% Colunas com quebra de linha e texto justificado
+% (\hspace{0pt} permite hifenizar a primeira palavra da célula)
+\newcolumntype{L}{>{\hspace{0pt}}X}
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 \newcommand{\cab}[1]{\cellcolor{cabecalho}\textbf{#1}}
 
@@ -99,19 +100,72 @@
        \texttt{if} aninhados de \texttt{h} e \texttt{dur} não têm \texttt{else},
        e todo o corpo está dentro de um \texttt{try} com \texttt{except: pass}.
        Ex.: marcar às 20h não marca e não avisa.
-     & Quem chama acredita que o atendimento foi marcado; o problema só aparece
-       depois (paciente sem horário), sem mensagem nem exceção que indique a
-       causa. O \texttt{except: pass} ainda esconde qualquer erro futuro dentro
-       de \texttt{add}, inclusive bugs do próprio código. \\ \hline
-  2  &  &  &  \\ \hline
-  3  &  &  &  \\ \hline
-  4  &  &  &  \\ \hline
-  5  &  &  &  \\ \hline
-  6  &  &  &  \\ \hline
-  7  &  &  &  \\ \hline
-  8  &  &  &  \\ \hline
-  9  &  &  &  \\ \hline
-  10 &  &  &  \\ \hline
+     & Quem utiliza a função acredita que o atendimento foi marcado, pois nenhuma
+       mensagem ou exceção é apresentada quando uma regra não é atendida. Isso faz
+       com que o problema só seja percebido posteriormente, quando o paciente
+       descobre que não possui horário, sem que exista qualquer indicação da causa.
+       Além disso, o \texttt{except: pass} faz com que qualquer erro que venha a
+       acontecer dentro de \texttt{add}, inclusive bugs do próprio código, seja
+       ignorado, dificultando a identificação de onde um determinado problema
+       pode estar acontecendo. \\ \hline
+  2 & Manutenabilidade 
+    & Em \texttt{add}, os parâmetros da função não possuem nomes descritivos.
+    & Para entender o que é cada um desses parâmetros, o desenvolvedor precisará
+    navegar pelo código e tentar inferir com base nas verificações o que cada parâmetro
+    significa, além de ter que ter algum domínio pequeno sobre o negócio para facilitar
+    essa inferência. \\ \hline
+  3 & Manutenabilidade 
+    & Em todas as funções presentes no sistema, ao ter que acessar alguma informação de um agendamento
+    existente, é feita a obtenção desses dados com base na posição em que elas são armazenadas na estrutura
+    de dados utilizada (lista). 
+    & Torna-se necessário o conhecimento da ordem aos quais os dados são armazenados para cada uma das linhas. 
+    Caso utilizassemos uma estrutura diferente como um objeto ou mesmo um dicionário, onde temos a associação entre
+    chave e valor, onde essa chave indicaria exatamente qual informação que estariamos acessando (nome do paciente, data e etc.)
+    e o valor sendo exatamente a informação ao qual armazenamos durante a inserção, isso tornaria muito mais fácil
+    o processo de decodificar qual informação está sendo acessa, ou mesmo durante o processo de implementar uma funcionalidade
+    diferente, acessar mais facilmente um valor ou alterar ele se torna muito mais simples por retirar a necessidade de ficar
+    sempre se lembrando da ordem dos dados. \\ \hline
+  4 & Adequação e lógica 
+    & Em \texttt{add}, não há nenhuma validação referente ao formato de data. 
+    & De acordo com a regra de negócio, a data deverá assumir o seguinte formato: AAAA-MM-DD. 
+    Qualquer outro formato é considerado como inválido. \\ \hline
+  5 & Adequação e lógica 
+    & Em \texttt{add}, a duração não contém uma validação adequada, conforme definido na regra de negócio. 
+    & De acordo com a regra de negócio, a duração deve ser entre 15 e 120 minutos. Além disso, sempre deverá ser
+    um múltiplo de 15. \\ \hline
+  6 & Desempenho e recursos 
+    & O tempo de busca dos agendamentos por data, hora e paciente/profissional cresce 
+    constantemente a partir da quantidade de agendamentos armazenados. 
+    & Conforme mais dados vão sendo armazenados, torna-se mais demorado achar agendamentos com base na
+    combinação de parâmetros anteriormente citados pelo fato de que eles podem estar em diferentes 
+    posições na lista de elementos. Isso faz com que, em casos extremos, toda a lista tenha que ser
+    percorrida para que possamos saber se um horário está livre ou não. \\ \hline
+  7 & Organização e estética
+    & Em \texttt{add}, temos múltiplas responsabilidades sendo atribuídas a um método que deveria
+  se concentrar na inserção dos agendamentos. 
+    & A separação de responsabilidades contribui com a facilidade na hora de modificar uma lógica especifica
+    ou mesmo na hora de debugar, pois conseguimos mais facilmente fazer o isolamento de onde um determinado
+    problema pode acontecer. \\ \hline
+  8 & Organização e estética 
+    & Em \texttt{add}, temos quatro níveis de if aninhados.
+    & Para saber quando um atendimento é marcado, é preciso juntar todas as
+      condições na cabeça, pois o \texttt{append} está no nível mais profundo.
+      Os casos de falha ficam implícitos: nenhum \texttt{if} tem
+      \texttt{else}, e o aninhamento esconde essa ausência, o que permitiu a
+      falha silenciosa da anomalia 1. Cada regra nova acrescenta mais um
+      nível. \\ \hline
+  9 & Manutenabilidade 
+    & Comentário de TODO vencido e código comentado. 
+    & Se aquele trecho de código não tem serventia nenhuma e não vai ser executado, não tem necessidade
+    dele ficar comentado. Ele apena infla o projeto e, em certos casos, tendem a nunca serem excluídos, pois
+    a intenção do comentário não fica clara e não uma tarefa criada, mapeada e atribuída a ninguém, o que por sua
+    vez, ocasiona no esquecimento daquilo que foi marcado para ser feito. \\ \hline
+  10 & Adequação e lógica 
+    & Em \texttt{lst}, temos um comentário falando que a função lista os atendimentos do mês. Entretanto,
+    se analisarmos a implementação e, até mesmo a entrada, vemos que na verdade, a listagem é dos agendamentos
+    do dia especifico. 
+    & Isso ocasiona em uma confusão para quem está lendo o código, pois há uma quebra de "contrato". O comentário
+    fala uma coisa, mas o que é feito é outra. \\ \hline
 \end{tabularx}
 
 % =============================================================================
