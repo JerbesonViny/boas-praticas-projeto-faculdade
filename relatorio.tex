@@ -1,0 +1,223 @@
+% =============================================================================
+% DIM0501 — Boas Práticas de Programação
+% Relatório do Projeto da Unidade 1 — AgendaFácil
+% Estrutura baseada em Projeto_Unidade1_Modelo_Relatorio.docx
+%
+% Compilar: pdflatex relatorio.tex   (ou: latexmk -pdf relatorio.tex)
+% Limite: o relatório inteiro deve caber em até QUATRO páginas.
+% As instruções do modelo original estão em comentários (%) ao longo do
+% arquivo e não aparecem no PDF.
+% =============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+% --- Aparência --------------------------------------------------------------
+\definecolor{cabecalho}{HTML}{E7EEF7}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\renewcommand{\arraystretch}{1.3}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{10pt}{4pt}
+
+% Colunas com quebra de linha e alinhamento à esquerda
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcommand{\cab}[1]{\cellcolor{cabecalho}\textbf{#1}}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  % Permite acentos dentro do bloco de código (saída do programa)
+  literate=
+    {á}{{\'a}}1 {à}{{\`a}}1 {â}{{\^a}}1 {ã}{{\~a}}1
+    {é}{{\'e}}1 {ê}{{\^e}}1 {í}{{\'i}}1
+    {ó}{{\'o}}1 {ô}{{\^o}}1 {õ}{{\~o}}1 {ú}{{\'u}}1 {ü}{{\"u}}1 {ç}{{\c{c}}}1
+    {Á}{{\'A}}1 {À}{{\`A}}1 {Â}{{\^A}}1 {Ã}{{\~A}}1
+    {É}{{\'E}}1 {Ê}{{\^E}}1 {Í}{{\'I}}1
+    {Ó}{{\'O}}1 {Ô}{{\^O}}1 {Õ}{{\~O}}1 {Ú}{{\'U}}1 {Ç}{{\c{C}}}1
+}
+
+% --- Dados de identificação (preencha aqui) ---------------------------------
+\newcommand{\integrantes}{%
+  Nome Sobrenome (matrícula) \\
+  Nome Sobrenome (matrícula)%
+}
+\newcommand{\linguagem}{Python}
+\newcommand{\repositorio}{\url{https://github.com/usuario/repositorio}}
+
+\begin{document}
+
+% =============================================================================
+% Cabeçalho
+% =============================================================================
+\begin{center}
+  {\small DIM0501 — Boas Práticas de Programação}\\[2pt]
+  {\Large\bfseries Relatório do Projeto da Unidade 1 — AgendaFácil}\\[4pt]
+  {\small Prof. Marcus Terra \quad·\quad DIMAp/UFRN \quad·\quad
+   Semestre 2026.1 \quad·\quad Entrega: 25/10/2026}
+\end{center}
+
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{4.5cm}|L|}
+  \hline
+  \cab{Integrantes (nome e matrícula)} & \integrantes \\ \hline
+  \cab{Linguagem}                       & \linguagem \\ \hline
+  \cab{Repositório ou arquivo entregue} & \repositorio \\ \hline
+\end{tabularx}
+
+% =============================================================================
+\section{Diagnóstico do código-base}
+% =============================================================================
+% Liste pelo menos dez anomalias encontradas no código-base, com no mínimo uma
+% em cada categoria do checklist da Aula 2. Em "onde", aponte a função, a
+% variável ou a linha — "está tudo errado" não é localização. Em "por que é um
+% problema", escreva o efeito prático sobre quem vai ler ou manter o código,
+% não a regra violada. Numere as anomalias: a seção 2 vai se referir a elas
+% por número.
+
+\begin{tabularx}{\textwidth}{|C{0.6cm}|>{\raggedright\arraybackslash}p{2.8cm}|L|L|}
+  \hline
+  \cab{\#} & \cab{Categoria} & \cab{Anomalia e onde está} & \cab{Por que é um problema} \\ \hline
+  1  & Programação defensiva e segurança
+     & Em \texttt{add}, entradas fora das regras são ignoradas em silêncio: os
+       \texttt{if} aninhados de \texttt{h} e \texttt{dur} não têm \texttt{else},
+       e todo o corpo está dentro de um \texttt{try} com \texttt{except: pass}.
+       Ex.: marcar às 20h não marca e não avisa.
+     & Quem chama acredita que o atendimento foi marcado; o problema só aparece
+       depois (paciente sem horário), sem mensagem nem exceção que indique a
+       causa. O \texttt{except: pass} ainda esconde qualquer erro futuro dentro
+       de \texttt{add}, inclusive bugs do próprio código. \\ \hline
+  2  &  &  &  \\ \hline
+  3  &  &  &  \\ \hline
+  4  &  &  &  \\ \hline
+  5  &  &  &  \\ \hline
+  6  &  &  &  \\ \hline
+  7  &  &  &  \\ \hline
+  8  &  &  &  \\ \hline
+  9  &  &  &  \\ \hline
+  10 &  &  &  \\ \hline
+\end{tabularx}
+
+% =============================================================================
+\section{O que foi resolvido e o que ficou como dívida}
+% =============================================================================
+% Uma linha por anomalia da seção 1, usando o mesmo número. Deixar algo por
+% resolver é legítimo — desde que seja uma decisão consciente e justificada, e
+% não um esquecimento. Dívida técnica declarada vale mais que dívida técnica
+% escondida.
+% Preencha a coluna "Situação" com Resolvida ou Dívida assumida.
+
+\begin{tabularx}{\textwidth}{|C{0.6cm}|>{\raggedright\arraybackslash}p{3.2cm}|L|}
+  \hline
+  \cab{\#} & \cab{Situação} & \cab{Como foi resolvida, ou por que ficou} \\ \hline
+  1  &  &  \\ \hline
+  2  &  &  \\ \hline
+  3  &  &  \\ \hline
+  4  &  &  \\ \hline
+  5  &  &  \\ \hline
+  6  &  &  \\ \hline
+  7  &  &  \\ \hline
+  8  &  &  \\ \hline
+  9  &  &  \\ \hline
+  10 &  &  \\ \hline
+\end{tabularx}
+
+% =============================================================================
+\section{Decisões de projeto}
+% =============================================================================
+% Registre de duas a quatro decisões que o código sozinho não explica: por que
+% este tipo de dado e não outro, por que lançar exceção em vez de devolver
+% valor padrão, por que separar em três funções e não em uma. O que se avalia
+% aqui é a justificativa, não a escolha — quase sempre há mais de uma resposta
+% defensável.
+
+\begin{tabularx}{\textwidth}{|L|L|L|}
+  \hline
+  \cab{Decisão tomada} & \cab{Alternativa descartada} & \cab{Por que decidimos assim} \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+\end{tabularx}
+
+% =============================================================================
+\section{Mudanças de comportamento}
+% =============================================================================
+% A Etapa 4 muda, de propósito, o que o sistema faz com entradas inválidas.
+% Registre cada mudança aqui. O caminho feliz não entra nesta tabela: se ele
+% mudou, houve um erro de refatoração.
+
+\begin{tabularx}{\textwidth}{|L|L|L|}
+  \hline
+  \cab{Entrada ou situação} & \cab{O que acontecia antes} & \cab{O que acontece agora} \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+   &  &  \\ \hline
+\end{tabularx}
+
+% =============================================================================
+\section{Como executar e gerar a documentação}
+% =============================================================================
+
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{5cm}|L|}
+  \hline
+  \cab{Item} & \cab{Resposta} \\ \hline
+  Comando para compilar e executar                 & \texttt{} \\ \hline
+  Comando para gerar a documentação de API         & \texttt{} \\ \hline
+  Onde a documentação gerada ficou no repositório  & \texttt{} \\ \hline
+  Saída do programa de demonstração                & (ver abaixo) \\ \hline
+\end{tabularx}
+
+\medskip
+\textbf{Saída do programa de demonstração:}
+\begin{lstlisting}
+(cole aqui a saída do programa)
+\end{lstlisting}
+
+% =============================================================================
+\section{Uso de ferramentas de IA}
+% =============================================================================
+% O uso é permitido. O professor pode pedir que qualquer integrante explique
+% qualquer trecho do código entregue.
+% Para marcar: troque $\square$ por $\boxtimes$.
+
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{5cm}|L|}
+  \hline
+  \cab{Pergunta} & \cab{Resposta} \\ \hline
+  Foram usadas ferramentas de IA neste trabalho?
+    & $\square$ Não \qquad $\square$ Sim \\ \hline
+  Em quais etapas, e para quê?
+    &  \\ \hline
+\end{tabularx}
+
+% =============================================================================
+% Conferência antes de enviar (checklist pessoal — não aparece no PDF)
+% =============================================================================
+% [ ] O programa de demonstração compila e roda, e imprime a mesma saída do
+%     código-base.
+% [ ] Toda anomalia da seção 1 aparece na seção 2, resolvida ou declarada como
+%     dívida.
+% [ ] O README permite que outra pessoa execute o projeto sem perguntar nada.
+% [ ] Os textos em itálico deste modelo foram apagados.
+%
+% "Código que funciona mas não se explica não está pronto."
+
+\end{document}
