@@ -1,23 +1,25 @@
 from typing import Callable, Dict, NamedTuple
 
-from src.agenda import (
-    Agenda,
+from src.agenda import Agenda
+from src.agenda_erros import (
     AgendamentoNaoEncontradoErro,
-    FormatoDataInvalidaErro,
+    ConsultaIntervaloDuracaoErro,
+    ConsultaMultiploDuracaoErro,
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
-    PisoDuracaoAtendimentoErro,
 )
+from src.utilitarios_erros import FormatoDataInvalidaErro
 
 
 # A Agenda lança as exceções para o topo; aqui elas são capturadas apenas
 # para mostrar a mensagem ao usuário sem encerrar o programa.
 ERROS_EXIBIDOS = (
     AgendamentoNaoEncontradoErro,
+    ConsultaIntervaloDuracaoErro,
+    ConsultaMultiploDuracaoErro,
     FormatoDataInvalidaErro,
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
-    PisoDuracaoAtendimentoErro,
     ValueError,
     TypeError,
 )
@@ -44,7 +46,7 @@ def marcar_atendimento(agenda: Agenda) -> None:
         nome_doutor=ler_texto('Profissional'),
         data=ler_texto('Data (AAAA-MM-DD)'),
         hora_atendimento=ler_inteiro('Hora (8 a 17)'),
-        duracao_minutos=ler_inteiro('Duracao (minutos)'),
+        duracao_minutos=ler_inteiro('Duracao (15 a 120 min, multiplo de 15)'),
     )
 
     print(f'Atendimento marcado para {nome_paciente}')

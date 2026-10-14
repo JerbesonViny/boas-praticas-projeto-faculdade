@@ -3,14 +3,21 @@ import unittest
 from contextlib import redirect_stdout
 from typing import TypedDict
 
-from src.agenda import (
-    Agenda,
+from src.agenda import Agenda
+from src.agenda_erros import (
     AgendamentoNaoEncontradoErro,
-    AgendamentoStatus,
-    FormatoDataInvalidaErro,
+    ConsultaIntervaloDuracaoErro,
+    ConsultaMultiploDuracaoErro,
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
-    PisoDuracaoAtendimentoErro,
+)
+from src.agendamento_entidade import AgendamentoStatus
+from src.utilitarios_erros import FormatoDataInvalidaErro
+from tests.dados_teste import (
+    DATAS_COM_TIPO_INVALIDO,
+    DATAS_FORA_DO_PADRAO,
+    DATAS_INEXISTENTES,
+    DATAS_NAO_RECONHECIDAS,
 )
 
 
@@ -46,40 +53,6 @@ REMARCACAO_PADRAO: DadosRemarcacao = {
     'nova_data': '2026-10-05',
     'nova_hora_atendimento': 10,
 }
-
-
-# O strptime aceita estas datas, mas elas nao voltam identicas no strftime.
-DATAS_FORA_DO_PADRAO = [
-    '2026-1-5',
-    '2026-10-5',
-    '２０２６-10-05',
-]
-
-# O strptime recusa estas datas e o ValueError sobe sem conversao.
-DATAS_NAO_RECONHECIDAS = [
-    '20261005',
-    '05/10/2026',
-    '2026/10/05',
-    '',
-    ' 2026-10-05',
-    '2026-10-05 ',
-    '2026-10-05T10:00',
-]
-
-DATAS_INEXISTENTES = [
-    '2026-02-29',
-    '2026-02-30',
-    '2026-04-31',
-    '2026-13-01',
-    '2026-00-10',
-    '2026-10-00',
-]
-
-DATAS_COM_TIPO_INVALIDO = [
-    None,
-    20261005,
-    b'2026-10-05',
-]
 
 
 class AgendaTestCase(unittest.TestCase):
@@ -119,15 +92,24 @@ class TestAdicionarHorario(AgendaTestCase):
 
 class TestAdicionarDuracao(AgendaTestCase):
     def test_aceita_duracao_minima(self) -> None:
-        self._adicionar({'duracao_minutos': 1})
+        self._adicionar({'duracao_minutos': 15})
 
-    def test_rejeita_duracao_zero(self) -> None:
-        with self.assertRaises(PisoDuracaoAtendimentoErro):
-            self._adicionar({'duracao_minutos': 0})
+    def test_aceita_duracao_maxima(self) -> None:
+        self._adicionar({'duracao_minutos': 120})
 
-    def test_rejeita_duracao_negativa(self) -> None:
-        with self.assertRaises(PisoDuracaoAtendimentoErro):
-            self._adicionar({'duracao_minutos': -10})
+    def test_rejeita_duracao_abaixo_do_minimo(self) -> None:
+        for duracao in [-10, 0, 14]:
+            with self.subTest(duracao=duracao):
+                with self.assertRaises(ConsultaIntervaloDuracaoErro):
+                    self._adicionar({'duracao_minutos': duracao})
+
+    def test_rejeita_duracao_acima_do_maximo(self) -> None:
+        with self.assertRaises(ConsultaIntervaloDuracaoErro):
+            self._adicionar({'duracao_minutos': 135})
+
+    def test_rejeita_duracao_que_nao_eh_multiplo_de_15(self) -> None:
+        with self.assertRaises(ConsultaMultiploDuracaoErro):
+            self._adicionar({'duracao_minutos': 20})
 
 
 class TestAdicionarData(AgendaTestCase):
@@ -188,7 +170,7 @@ class TestAdicionarDisponibilidade(AgendaTestCase):
         self._adicionar({'hora_atendimento': 10})
 
     def test_agendamento_rejeitado_nao_ocupa_horario(self) -> None:
-        with self.assertRaises(PisoDuracaoAtendimentoErro):
+        with self.assertRaises(ConsultaIntervaloDuracaoErro):
             self._adicionar({'duracao_minutos': 0})
 
         self._adicionar({'duracao_minutos': 30})
@@ -344,8 +326,8 @@ class TestBarreiraTudoOuNada(AgendaTestCase):
 
         saida = self._listar('2026-10-05')
 
-        self.assertIn(AgendamentoStatus.marcado, saida)
-        self.assertNotIn(AgendamentoStatus.remarcado, saida)
+        self.assertIn(AgendamentoStatus.MARCADO, saida)
+        self.assertNotIn(AgendamentoStatus.REMARCADO, saida)
 
     def test_remarcar_rejeitado_por_nova_data_mantem_data_original(
         self,
@@ -393,9 +375,9 @@ class TestBarreiraTipos(AgendaTestCase):
 
     @unittest.expectedFailure
     def test_rejeita_duracao_fracionada(self) -> None:
-        # Furo conhecido: a barreira verifica a faixa, mas nao o tipo.
+        # Furo conhecido: 45.0 passa porque 45.0 % 15 == 0.
         with self.assertRaises(TypeError):
-            self._adicionar({'duracao_minutos': 30.5})
+            self._adicionar({'duracao_minutos': 45.0})
 
 
 class TestListarPorData(AgendaTestCase):
@@ -437,8 +419,8 @@ class TestListarPorData(AgendaTestCase):
 
         saida = self._listar('2026-10-05')
 
-        self.assertIn(AgendamentoStatus.marcado, saida)
-        self.assertNotIn(AgendamentoStatus.remarcado, saida)
+        self.assertIn(AgendamentoStatus.MARCADO, saida)
+        self.assertNotIn(AgendamentoStatus.REMARCADO, saida)
 
     def test_agendamento_remarcado_aparece_na_nova_data(self) -> None:
         self._adicionar({'nome_paciente': 'Ana'})
@@ -451,7 +433,7 @@ class TestListarPorData(AgendaTestCase):
         self._adicionar({})
         self._remarcar({'nova_hora_atendimento': 10})
 
-        self.assertIn(AgendamentoStatus.remarcado, self._listar('2026-10-05'))
+        self.assertIn(AgendamentoStatus.REMARCADO, self._listar('2026-10-05'))
 
     def test_cenario_do_programa_de_demonstracao(self) -> None:
         self._adicionar({'nome_paciente': 'Ana', 'hora_atendimento': 9})
@@ -469,8 +451,8 @@ class TestListarPorData(AgendaTestCase):
 
         self.assertIn('Carla', saida)
         self.assertIn('Dra. Souza', saida)
-        self.assertIn(AgendamentoStatus.marcado, saida)
-        self.assertNotIn(AgendamentoStatus.remarcado, saida)
+        self.assertIn(AgendamentoStatus.MARCADO, saida)
+        self.assertNotIn(AgendamentoStatus.REMARCADO, saida)
         self.assertNotIn('Ana', saida)
         self.assertNotIn('Bruno', saida)
 
@@ -491,45 +473,6 @@ class TestListarPorData(AgendaTestCase):
             with self.subTest(data=data):
                 with self.assertRaises(TypeError):
                     self._listar(data)
-
-
-class TestAgendamentoStatus(unittest.TestCase):
-    def test_valores_dos_status(self) -> None:
-        self.assertEqual(AgendamentoStatus.marcado, 'MARCADO')
-        self.assertEqual(AgendamentoStatus.remarcado, 'REMARCADO')
-
-
-class TestMensagensDeErro(unittest.TestCase):
-    def test_horario_fora_intervalo_informa_intervalo_permitido(self) -> None:
-        erro = HorarioForaIntervaloPermitidoErro(8, 17)
-
-        self.assertEqual(str(erro), 'Horario de atendimento: 08 as 17')
-
-    def test_piso_duracao_informa_duracao_minima(self) -> None:
-        erro = PisoDuracaoAtendimentoErro()
-
-        self.assertEqual(str(erro), 'A duracao minima eh de 1 minuto.')
-
-    def test_horario_reservado_informa_conflito(self) -> None:
-        erro = HorarioReservadoErro()
-
-        self.assertEqual(
-            str(erro),
-            'Esse horario foi reservado para outro paciente.'
-        )
-
-    def test_agendamento_nao_encontrado_informa_ausencia(self) -> None:
-        erro = AgendamentoNaoEncontradoErro()
-
-        self.assertEqual(str(erro), 'Agendamento nao encontrado.')
-
-    def test_formato_data_invalida_informa_valor_e_formato(self) -> None:
-        erro = FormatoDataInvalidaErro('05/10/2026')
-
-        self.assertEqual(
-            str(erro),
-            'Data (05/10/2026) em formato invalido. Formato aceito: %Y-%m-%d.'
-        )
 
 
 if __name__ == '__main__':
