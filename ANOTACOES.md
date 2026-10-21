@@ -1,6 +1,20 @@
 # Anotações — mapeamento da refatoração para o relatório
 
-## Estado atual (`src/agenda.py`)
+## Estado atual (`src/`)
+
+### Estrutura dos módulos
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `src/agenda.py` | `Agenda`: guarda os agendamentos e coordena os casos de uso (`adicionar`, `remarcar`, `listar_por_data`); verifica conflito e existência |
+| `src/agendamento_entidade.py` | `Agendamento` (se valida ao ser criado e ao ser alterado) e `AgendamentoStatus` (`MARCADO`, `REMARCADO`) |
+| `src/agenda_utilitario.py` | Regras de negócio de hora e duração (`validar_hora_atendimento`, `validar_duracao`) e suas constantes |
+| `src/data_utilitarios.py` | Regra de data (`validar_data`) |
+| `src/constantes.py` | `FORMATO_DATA` — módulo próprio para evitar import circular entre `data_utilitarios` e `utilitarios_erros` |
+| `src/agenda_erros.py` | Exceções de agenda e duração |
+| `src/utilitarios_erros.py` | `FormatoDataInvalidaErro` |
+
+Imports internos são **relativos** (`from .agenda_erros import ...`): o código roda como pacote (`python3 -m src.agenda`, `python3 -m unittest`, `python3 cli.py`).
 
 Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde cada coisa entra no relatório.
 
@@ -10,37 +24,44 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
 |---|---|
 | Classe `Agendamento` com campos nomeados | "o atendimento deve virar um tipo com campos nomeados" (fim de `a[2]`, `a[3]`) |
 | `add`/`rem`/`lst`/`p`/`pr`/`h`/`dur` → `adicionar`/`remarcar`/`listar_por_data`/`nome_paciente`/`nome_doutor`/... | Nomes seguem PEP 8 |
-| Campo `status` em `Agendamento` + classe `AgendamentoStatus` (`marcado`, `remarcado`) | Fim da string mágica `"MARCADO"` em `a[5]` |
+| Campo `status` em `Agendamento` + classe `AgendamentoStatus` (`MARCADO`, `REMARCADO`) | Fim da string mágica `"MARCADO"` em `a[5]` |
 | Conflito verificado só em `__validar_disponibilidade_horario`, usado por `adicionar` **e** `remarcar` | "a verificação de conflito deve existir em um único lugar" (no código-base, o laço de conflito estava duplicado em `add` e `rem`) |
 | Busca centralizada em `__buscar_agendamento` (por doutor ou por paciente) | Elimina laços duplicados |
-| Validações em métodos privados separados de `adicionar` / `remarcar` | "quem valida não agenda" |
+| Regras de negócio em módulos próprios (`agenda_utilitario`, `data_utilitarios`), separadas da `Agenda` | "quem valida não agenda" |
+| Exceções em módulos próprios (`agenda_erros`, `utilitarios_erros`) | Organização |
 | Lista global `ag` → `self.__agendamentos` por instância (em `__init__`) | Organização: elimina estado global compartilhado |
-| Constante `FORMATO_DATA = '%Y-%m-%d'` | "nenhum valor fixo com significado de negócio solto" (parcial — ver pendências) |
+| Constantes: `AGENDAMENTO_HORA_MINIMA = 8`, `AGENDAMENTO_HORA_LIMITE = 18`, `CONSULTA_DURACAO_MINIMA_MINUTOS = 15`, `CONSULTA_DURACAO_MAXIMA_MINUTOS = 120`, `CONSULTA_MULTIPLO_DURACAO_MINUTOS = 15`, `FORMATO_DATA` | "nenhum valor fixo com significado de negócio solto" |
 | `if __name__ == '__main__'` | Organização |
 
 ### Etapa 4 — Programação defensiva (muda comportamento) → Seções 2 e 4
 
 | O que foi feito | Exigência do enunciado atendida |
 |---|---|
-| Exceções próprias: `HorarioForaIntervaloPermitidoErro`, `PisoDuracaoAtendimentoErro`, `HorarioReservadoErro`, `AgendamentoNaoEncontradoErro`, `FormatoDataInvalidaErro` | "exceção específica (`ValueError` ou própria herdando de `Exception`)" |
+| Exceções próprias: `HorarioForaIntervaloPermitidoErro`, `ConsultaIntervaloDuracaoErro`, `ConsultaMultiploDuracaoErro`, `HorarioReservadoErro`, `AgendamentoNaoEncontradoErro`, `FormatoDataInvalidaErro` | "exceção específica (`ValueError` ou própria herdando de `Exception`)" |
 | Remoção do `try/except: pass` | "nenhum bloco de captura vazio ou genérico" |
-| Horário fora do expediente e duração ≤ 0 lançam exceção | "nenhuma operação pode falhar em silêncio" |
+| Horário fora do expediente e duração inválida lançam exceção | "nenhuma operação pode falhar em silêncio" |
+| Regra de duração completa: 15 a 120 minutos, em múltiplos de 15 | Regra de negócio "Duração" (o código-base só exigia `dur > 0`) |
 | `remarcar` de agendamento inexistente lança `AgendamentoNaoEncontradoErro` | "nenhuma operação pode falhar em silêncio" (o `rem` não fazia nada) |
-| `remarcar` valida expediente da hora original e da nova | Cláusulas de guarda em toda função pública |
-| Validação de data (`adicionar`: `data`; `remarcar`: `data` e `nova_data`; `listar_por_data`: `data`) | Regra de negócio "Data — formato AAAA-MM-DD" |
-| Validações no início de `adicionar`, `remarcar` e `listar_por_data` | "pré-condições verificadas com cláusulas de guarda" |
+| `remarcar` valida expediente e data, da original e da nova | Cláusulas de guarda em toda função pública |
+| Validação de data em `adicionar` (via `Agendamento`), `remarcar` e `listar_por_data` | Regra de negócio "Data — formato AAAA-MM-DD" |
+| `Agendamento` se valida no construtor e em `atualizar_data`/`atualizar_hora_atendimento` — é impossível existir um agendamento inválido | "pré-condições verificadas com cláusulas de guarda" (fecha a "porta escondida" da entidade) |
 | `FormatoDataInvalidaErro` inclui a data rejeitada na mensagem | "mensagem que diz qual valor causou o problema" (só esta, por enquanto) |
 
 ### Apoio — CLI para teste manual (`cli.py`)
 
 - Menu numerado (1 marcar, 2 remarcar, 3 listar, 0 sair) com `input` para cada entrada.
-- A `Agenda` lança as exceções para o topo; a CLI captura **uma tupla explícita** (as cinco exceções próprias + `ValueError` + `TypeError`) só para exibir `Erro (Tipo): mensagem` e continuar. Sem `except Exception` — respeita "nenhum bloco de captura genérico".
+- A `Agenda` lança as exceções para o topo; a CLI captura **uma tupla explícita** (as seis exceções próprias + `ValueError` + `TypeError`) só para exibir `Erro (Tipo): mensagem` e continuar. Sem `except Exception` — respeita "nenhum bloco de captura genérico".
 - `EOFError`/`KeyboardInterrupt` (Ctrl+D / Ctrl+C) encerram sem traceback.
 - A data digitada não passa por `.strip()`, para permitir testar entradas como `' 2026-10-05'`.
+- O cenário do código-base (Ana, Bruno, Carla, remarcar, listar) funciona pela CLI.
 
 ### Seção 3 — Decisões de projeto
 
 - **Exceções próprias** em vez de `ValueError` / `print`.
+- **Duas exceções para a duração** (`ConsultaIntervaloDuracaoErro` e `ConsultaMultiploDuracaoErro`) em vez de uma: cada uma diz exatamente qual regra foi violada. Quando a duração viola as duas (ex.: 10 ou 125), o **intervalo** é verificado primeiro.
+- **Nome `AGENDAMENTO_HORA_LIMITE` (e não `..._MAXIMA`)**: a comparação é `>=`, então 18h já é recusado. "Máxima" daria a entender que 18h é permitido. A mensagem de erro recebe `AGENDAMENTO_HORA_LIMITE - 1` para continuar mostrando "08 as 17" — a última hora em que um atendimento pode **começar**.
+- **Nome `CONSULTA_MULTIPLO_DURACAO_MINUTOS` separado de `CONSULTA_DURACAO_MINIMA_MINUTOS`**, mesmo com o mesmo valor (15): são conceitos diferentes. Se a duração mínima passar a 30, o passo de 15 em 15 não deve mudar junto.
+- **`FORMATO_DATA` em `constantes.py`**: `data_utilitarios` precisa de `FormatoDataInvalidaErro` e `utilitarios_erros` precisa de `FORMATO_DATA`. Com a constante dentro de um deles, os dois se importavam mutuamente (import circular → `ImportError`). Com um terceiro módulo, as dependências vão num sentido só.
 - **Validação de data por "ida e volta"** (`strptime` → `strftime` → comparar com a entrada):
   - `datetime.strptime` sozinho aceita `2026-1-5` (sem zero à esquerda) e dígitos Unicode (`２０２６-10-05`).
   - `date.fromisoformat` sozinho (Python ≥ 3.11) aceita outros formatos ISO, como `20261005`.
@@ -57,25 +78,35 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
 - **Tipo errado (`None`, `int`, `bytes`) gera `TypeError`** vindo do próprio `strptime` — segue a convenção do Python: `TypeError` para tipo errado, `ValueError` para valor errado.
 - **`remarcar` valida também a hora original.** Remarcar "das 20h" lança `HorarioForaIntervaloPermitidoErro` em vez de `AgendamentoNaoEncontradoErro`. Não é bug (nunca existe agendamento nesse horário), mas a mensagem pode confundir — decidir se mantém e justificar.
 - **Status `REMARCADO` (decidir e justificar).** No código-base, `rem` não mexia no status — o atendimento remarcado continuava `MARCADO`. Agora `remarcar` muda para `REMARCADO`. O enunciado diz que "não há funcionalidade nova a implementar", então: ou justificar a escolha aqui (e registrar na Seção 4), ou voltar a manter `MARCADO`.
-- **Onde fica a barreira de validação: na entrada dos métodos públicos.**
-  - `adicionar`, `remarcar` e `listar_por_data` são a **fronteira de confiança**: recebem dados de fora (CLI, testes, outros módulos) e tratam tudo como hostil.
-  - A validação fica **dentro** do método público, não em quem o chama (ex.: a CLI). Se ficasse fora, todo chamador teria que lembrar de validar, e bastaria um esquecer para dado inválido entrar. O método se protege sozinho.
-  - Os `__validar_*` são privados só por organização (uma responsabilidade cada) — eles **são** a barreira. Já `__buscar_agendamento` e `__verificar_agendamento_*` ficam **atrás** dela: recebem dados já validados e não revalidam.
-- **Quando validar: antes de qualquer efeito colateral (tudo ou nada).** Todas as guardas rodam antes do `append` (em `adicionar`) e antes de alterar `data`/`hora_atendimento`/`status` (em `remarcar`). Se uma falha, nada foi alterado — a agenda nunca fica meio modificada.
+- **A entidade `Agendamento` se valida sozinha.** Antes, `Agendamento('X', 'Y', 'banana', 99, -1, 'QUALQUER')` criava um objeto inválido sem passar por nenhuma guarda, porque as validações moravam na `Agenda` — toda classe pública é uma porta de entrada. Alternativa descartada: tratar `Agendamento` como interno (só a `Agenda` cria), que dependeria de disciplina de quem usa. Com a validação no construtor e nos métodos `atualizar_*`, é impossível existir um agendamento inválido.
+- **Onde fica a barreira de validação: na entrada das classes e métodos públicos.**
+  - `Agendamento` (construtor e `atualizar_*`), `Agenda.remarcar` e `Agenda.listar_por_data` são a **fronteira de confiança**: recebem dados de fora (CLI, testes, outros módulos) e tratam tudo como hostil.
+  - A validação fica **dentro** do código chamado, não em quem o chama (ex.: a CLI). Se ficasse fora, todo chamador teria que lembrar de validar, e bastaria um esquecer para dado inválido entrar.
+  - Os validadores (`validar_hora_atendimento`, `validar_duracao`, `validar_data`) **são** a barreira — estão em módulos separados só por organização. Já `__buscar_agendamento` e `__verificar_agendamento_*` ficam **atrás** dela: recebem dados já validados e não revalidam.
+  - Chamar os validadores de dentro de `adicionar`/`remarcar` **não** quebra o SRP: a regra mora no validador; o método só coordena o caso de uso ("garantir pré-condições, depois guardar"). Uma mudança no expediente altera `agenda_utilitario.py`, não a `Agenda`.
+- **Quando validar: antes de qualquer efeito colateral (tudo ou nada).** O `Agendamento` é criado (e validado) antes do `append`; em `remarcar`, tudo é validado antes de alterar `data`/`hora_atendimento`/`status`. Se uma guarda falha, nada foi alterado — a agenda nunca fica meio modificada.
 - **Ordem das guardas: entrada primeiro, estado depois.** Tipo/formato/faixa (baratas, sem consultar a agenda) antes de conflito/existência (consultam a lista). Ex.: data `2026-10-5` num horário ocupado gera `FormatoDataInvalidaErro`, não `HorarioReservadoErro`.
 - **`raise` para validação, nunca `assert`.**
   - Critério: *quem pode causar a falha?* Quem chama (entrada ruim, estado inesperado) → `raise` com exceção específica. Só um bug no próprio código → `assert`.
   - `assert` é removido com `python -O` (`__debug__ = False`). Validar entrada com `assert` faria o sistema voltar a aceitar 20h, duração negativa e qualquer data em modo otimizado — falha silenciosa, exatamente o que a Etapa 4 proíbe. Além disso, `AssertionError` não é uma exceção específica.
   - Uso possível de `assert` (opcional, não implementado): registrar **invariantes** no núcleo, ex. no início de `__buscar_agendamento`, uma vez antes do laço:
     ```python
-    assert self.__data_no_formato(data), f'Data nao validada pela barreira: {data!r}'
+    assert data_no_formato(data), f'Data nao validada pela barreira: {data!r}'
     ```
-    com um predicado `__data_no_formato(data) -> bool` (não dá para usar `assert self.__validar_data(data)`: o validador retorna `None` e o assert falharia sempre). Custo: duplica a lógica da ida e volta. Ganho: na reestruturação em vários arquivos, avisa se algum caminho novo chamar o núcleo sem passar pela barreira.
+    com um predicado `data_no_formato(data) -> bool` (não dá para usar `assert validar_data(data)`: o validador retorna `None` e o assert falharia sempre). Custo: duplica a lógica da ida e volta. Ganho: avisa se algum caminho novo chamar o núcleo sem passar pela barreira.
   - A suíte passa igual com `python3 -O -m unittest` — nenhum teste depende de `assert` (os `self.assert*` do `unittest` são métodos, não o comando `assert`).
-- **Testes com `unittest`** — 68 testes em `tests/test_agenda.py` cobrindo expediente, duração, data, conflito, remarcação, listagem, status, barreira de validação, isolamento entre instâncias e mensagens de erro. Usam `subTest` para listar cada data inválida separadamente. Garantem que a refatoração não mudou o caminho feliz e documentam cada mudança intencional.
-  - `TestBarreiraTudoOuNada`: operação rejeitada não deixa a agenda alterada (nem status).
-  - `TestBarreiraOrdem`: validações de entrada são detectadas antes das de estado.
-  - `TestBarreiraTipos`: dois testes marcados com `@unittest.expectedFailure` documentam os furos conhecidos (hora `8.5` e duração `30.5` aceitas). Quando forem corrigidos, o `unittest` acusa *unexpected success* — sinal para remover o decorador.
+- **Testes com `unittest`** — 104 testes, um arquivo por módulo, cobrindo expediente, duração, data, conflito, remarcação, listagem, status, entidade, barreira de validação, isolamento entre instâncias e mensagens de erro. Usam `subTest` para listar cada valor inválido separadamente. Garantem que a refatoração não mudou o caminho feliz e documentam cada mudança intencional.
+
+  | Arquivo | Cobre |
+  |---|---|
+  | `tests/test_agenda.py` | Casos de uso da `Agenda` + barreira (`TestBarreiraTudoOuNada`, `TestBarreiraOrdem`, `TestBarreiraTipos`) + listagem |
+  | `tests/test_agendamento_entidade.py` | Validação no construtor, `atualizar_*` (valor inválido mantém o original), `marcar`/`remarcar`, `AgendamentoStatus` |
+  | `tests/test_agenda_utilitario.py` | Constantes de negócio; todas as horas 8–17; todos os múltiplos de 15 entre 15 e 120; precedência intervalo × múltiplo |
+  | `tests/test_data_utilitarios.py` | `validar_data` e `FORMATO_DATA` |
+  | `tests/test_erros.py` | Mensagens das seis exceções |
+  | `tests/dados_teste.py` | Listas de datas inválidas compartilhadas |
+
+  - Quatro testes marcados com `@unittest.expectedFailure` documentam os furos conhecidos (hora `8.5` e duração `45.0` aceitas). Quando forem corrigidos, o `unittest` acusa *unexpected success* — sinal para remover o decorador.
   - Os testes de `listar_por_data` capturam a saída (`redirect_stdout`) e verificam só se cada informação aparece (`assertIn`), sem fixar o texto exato — o formato ainda vai mudar (ver pendências).
   - Como `'MARCADO'` está contido em `'REMARCADO'`, os testes de status também verificam que `REMARCADO` **não** aparece quando não deveria.
 
@@ -84,7 +115,9 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
 | Entrada ou situação | O que acontecia antes | O que acontece agora |
 |---|---|---|
 | Atendimento às 18h ou mais (ex.: 20h) ou antes das 8h | Nada — os `if` falhavam e a função saía sem marcar e sem avisar | Lança `HorarioForaIntervaloPermitidoErro` |
-| Duração ≤ 0 | Nada — `if dur > 0` falhava em silêncio | Lança `PisoDuracaoAtendimentoErro` |
+| Duração ≤ 0 | Nada — `if dur > 0` falhava em silêncio | Lança `ConsultaIntervaloDuracaoErro` |
+| Duração entre 1 e 14 ou acima de 120 minutos | Aceita | Lança `ConsultaIntervaloDuracaoErro` (regra nova) |
+| Duração que não é múltiplo de 15 (ex.: 20, 50) | Aceita | Lança `ConsultaMultiploDuracaoErro` (regra nova) |
 | Mesmo profissional, data e hora já ocupados | Imprimia `Horario ocupado` | Lança `HorarioReservadoErro` (o demo deve capturar e imprimir `Horario ocupado` — ver pendências) |
 | Data fora do padrão (`2026-1-5`) ao marcar ou remarcar | Aceita — qualquer valor era gravado como data | Lança `FormatoDataInvalidaErro` |
 | Data não reconhecida ou inexistente (`05/10/2026`, `2026-02-30`) ao marcar ou remarcar | Aceita | Lança `ValueError` (vindo do `strptime`) |
@@ -108,50 +141,53 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
   14 Carla Dra. Souza MARCADO
   ```
 
-  O `__main__` de `src/agenda.py` deve repetir as cinco chamadas do código-base (Ana, Bruno, Carla, `rem`, `lst`). Hoje ele chama `adicionar` às 18h e termina com exceção.
+  O `__main__` de `src/agenda.py` deve repetir as cinco chamadas do código-base (Ana, Bruno, Carla, `rem`, `lst`). Hoje ele chama `adicionar` às 18h e termina com `HorarioForaIntervaloPermitidoErro`.
 
 - [ ] **Caso do Bruno:** `adicionar` agora lança `HorarioReservadoErro` em vez de imprimir. O demo precisa capturar a exceção e imprimir `Horario ocupado`, senão a saída muda.
 - [x] ~~Recriar `rem` (remarcar)~~ — feito como `remarcar`, reusando `__validar_disponibilidade_horario`.
 - [x] ~~Recriar `lst` (listar)~~ — feito como `listar_por_data`.
 - [x] ~~Status do atendimento~~ — feito: campo `status` + `AgendamentoStatus`.
-- [ ] **Formato da listagem quebra a regra de ouro.** O `lst` do código-base imprime uma linha por atendimento: `hora paciente profissional status` → `14 Carla Dra. Souza MARCADO`. O `listar_por_data` imprime várias linhas, **sem a hora**, e com os espaços de indentação do código dentro do texto (efeito da f-string com aspas triplas):
-
-  ```
-  Data: 2026-10-05;
-                      Paciente: Carla;
-                      Profissional: Dra. Souza;
-                      Status: MARCADO
-  ```
-
-  Ao mudar o formato, os testes de listagem continuam valendo (não fixam o texto).
-- [ ] **Impressão fora da lógica:** "quem agenda não imprime" — as mensagens (`Atendimento marcado para ...`, `Remarcado`) e a listagem devem sair do demo/camada de apresentação. Sugestão: `listar_por_data` **retorna** a lista de agendamentos da data e o `__main__` formata e imprime. Bônus: os testes deixam de precisar capturar `stdout`.
-- [ ] **Valores fixos soltos:** `8`, `17` e `18` ainda devem virar constantes (ex.: `INICIO_EXPEDIENTE = 8`). `FORMATO_DATA` já foi feito.
-- [ ] **Tipo errado:** `hora_atendimento` está anotado como `str` em `__validar_hora_atendimento`, `__buscar_agendamento`, `__validar_disponibilidade_horario` e `remarcar`; deve ser `int`.
+- [x] ~~Valores fixos soltos~~ — feito: constantes de expediente, duração e formato de data.
+- [ ] **Formato da listagem quebra a regra de ouro.** O `lst` do código-base imprime `hora paciente profissional status` → `14 Carla Dra. Souza MARCADO`. O `listar_por_data` imprime `Data: 2026-10-05; Paciente: Carla; Profissional: Dra. Souza; Status: MARCADO` — formato diferente e **sem a hora**. Ao mudar o formato, os testes de listagem continuam valendo (não fixam o texto).
+- [ ] **Impressão fora da lógica:** "quem agenda não imprime" — as mensagens (`Atendimento marcado para ...`, `Remarcado`) e a listagem devem sair do demo/camada de apresentação. Sugestão: `listar_por_data` **retorna** a lista de agendamentos da data e o `__main__`/CLI formata e imprime. Bônus: os testes deixam de precisar capturar `stdout`. (Se mudar, avisar para ajustar a CLI e os testes.)
+- [ ] **Tipo errado:** `hora_atendimento`/`nova_hora_atendimento` estão anotados como `str` em `src/agenda.py` (vários métodos), em `Agendamento.atualizar_hora_atendimento` e em `validar_hora_atendimento`; deve ser `int`.
 
 ### Etapa 3
 
-- [ ] Docstrings estilo Google (Args, Returns, Raises) em toda função pública. Em `adicionar`/`remarcar`, o `Raises` deve listar também `ValueError` e `TypeError` da data.
+- [ ] Docstrings estilo Google (Args, Returns, Raises) em toda função pública. O `Raises` lista também as exceções propagadas pelas funções chamadas (ex.: `adicionar` lista as de `Agendamento`).
+  - [x] ~~`src/agenda.py`~~ — todos os métodos da `Agenda`, inclusive os privados.
+    - [ ] Corrigir o `Returns` de `__verificar_agendamento_por_doutor`: diz "paciente", deveria ser "doutor".
+    - [ ] Ao corrigir o tipo da hora para `int` (Etapa 2), atualizar os `(str)` das docstrings de `remarcar`, `__buscar_agendamento`, `__validar_disponibilidade_horario` e `__verificar_*`.
+    - [ ] Se `listar_por_data` passar a retornar a lista (Etapa 2), trocar "Exibe no terminal" por um `Returns`.
+    - A docstring de `adicionar` cita os limites (8 a 17, 15 a 120, múltiplo de 15): se as constantes mudarem, atualizar o texto.
+  - [ ] `src/agendamento_entidade.py` — construtor, `se_validar`, `atualizar_data`, `atualizar_hora_atendimento`, `marcar`, `remarcar`.
+  - [ ] `src/agenda_utilitario.py` — `validar_hora_atendimento`, `validar_duracao`.
+  - [ ] `src/data_utilitarios.py` — `validar_data`.
+  - [ ] `cli.py`.
 - [ ] Pelo menos um comentário de decisão. Candidatos:
   - por que a data é validada por ida e volta (`strptime` + `strftime`);
-  - por que o `ValueError` do `strptime` sobe sem conversão.
+  - por que o `ValueError` do `strptime` sobe sem conversão;
+  - por que a mensagem de expediente usa `AGENDAMENTO_HORA_LIMITE - 1`;
+  - por que `FORMATO_DATA` mora em `constantes.py`.
 - [ ] README com instruções de execução e de geração de documentação.
 - [ ] Gerar documentação com `pdoc` ou `sphinx-apidoc`.
 
 ### Etapa 4
 
-- [ ] **Mensagens de erro devem dizer qual valor causou o problema.** `FormatoDataInvalidaErro` já faz; faltam `HorarioForaIntervaloPermitidoErro`, `PisoDuracaoAtendimentoErro`, `HorarioReservadoErro` e `AgendamentoNaoEncontradoErro`.
-- [ ] **Mensagem de `FormatoDataInvalidaErro`** mostra `%Y-%m-%d` (código interno do `strftime`); considerar `AAAA-MM-DD`, mais legível para o usuário. Se mudar, ajustar o teste da mensagem.
-- [ ] **Regra de duração:** entre 15 e 120 minutos, em múltiplos de 15. Hoje só rejeita ≤ 0. É regra nova (não existia no código-base) → registrar no diagnóstico e na Seção 4.
+- [ ] **Mensagens de erro devem dizer qual valor causou o problema.** `FormatoDataInvalidaErro` já faz; faltam `HorarioForaIntervaloPermitidoErro`, `ConsultaIntervaloDuracaoErro`, `ConsultaMultiploDuracaoErro`, `HorarioReservadoErro` e `AgendamentoNaoEncontradoErro`. (Ao mudar as mensagens, avisar para ajustar `tests/test_erros.py`.)
+- [ ] **Mensagem de `FormatoDataInvalidaErro`** mostra `%Y-%m-%d` (código interno do `strftime`); considerar `AAAA-MM-DD`, mais legível para o usuário.
+- [x] ~~Regra de duração: 15 a 120 minutos, múltiplos de 15~~ — feito (`validar_duracao` + duas exceções).
 - [x] ~~Regra de data: validar formato `AAAA-MM-DD`~~ — feito (ver Seção 3 para a decisão sobre as exceções).
-- [x] ~~Guardas no início de `remarcar`~~ — feito (hora e data, original e nova).
-- [x] ~~Guardas no início de `lst`~~ — feito: `listar_por_data` valida a data consultada.
-- [ ] **Furo de tipo na barreira:** hora `8.5` e duração `30.5` são aceitas (a guarda verifica a faixa, não o tipo). Hora `'10'` só é recusada por acaso (`TypeError` da comparação `str < int`). Sugestão: `isinstance(valor, int)` no início dos validadores, lançando `TypeError` com o valor na mensagem. Ao corrigir, remover os `@unittest.expectedFailure` de `TestBarreiraTipos`.
-- [ ] **Porta de entrada escondida — `Agendamento`:** `Agendamento('X', 'Y', 'banana', 99, -1, 'QUALQUER')` cria um objeto inválido sem passar por nenhuma guarda, porque as validações moram na `Agenda`. Decidir na reestruturação: tratar `Agendamento` como interno (só a `Agenda` cria) **ou** mover as guardas para dentro dele (fica impossível existir agendamento inválido). Justificar na Seção 3.
+- [x] ~~Guardas no início de `remarcar` e `listar_por_data`~~ — feito.
+- [x] ~~Porta de entrada escondida — `Agendamento`~~ — feito: a entidade se valida no construtor e em `atualizar_*` (ver Seção 3).
+- [ ] **Furo de tipo na barreira:** hora `8.5` e duração `45.0` são aceitas (a guarda verifica a faixa, não o tipo). Hora `'10'` só é recusada por acaso (`TypeError` da comparação `str < int`). Sugestão: `isinstance(valor, int)` no início dos validadores, lançando `TypeError` com o valor na mensagem. Ao corrigir, remover os quatro `@unittest.expectedFailure`.
 
 ## Ordem sugerida
 
-1. Concluir a **Etapa 2**: formato da listagem, separar impressão da lógica, constantes de expediente e o programa de demonstração imprimindo a saída idêntica.
-2. Completar a **Etapa 4**: mensagens com o valor, regra de duração, furo de tipo e decisão sobre `Agendamento`.
+**Prazo: 25/10/2026, 23h59** (atraso: −1,0 por dia). Entregáveis: código, `README.md`, relatório e `docs/` (ou o comando que gera, no README).
+
+1. Concluir a **Etapa 2**: programa de demonstração com a saída idêntica, formato da listagem e separar impressão da lógica.
+2. Completar a **Etapa 4**: mensagens com o valor e furo de tipo.
 3. **Etapa 3** por último, documentando o código já estável.
 
 Assim fica fácil provar que o caminho feliz não mudou (evita a penalidade de −1,0) e a Seção 4 do relatório fica limpa, com cada mudança intencional registrada.
