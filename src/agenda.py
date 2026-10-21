@@ -26,6 +26,20 @@ class Agenda:
         nome_paciente: str,
         agendamento: Agendamento
     ):
+        """
+        Verifica se o agendamento informado corresponde à data, hora de
+        atendimento e paciente informados.
+
+        Args:
+            data (str): Data no formato ANO-MES-DIA.
+            hora_atendimento (str): Hora do início do atendimento.
+            nome_paciente (str): Nome do paciente.
+            agendamento (Agendamento): Agendamento a ser comparado.
+
+        Returns:
+            bool: True se data, hora de atendimento e paciente forem iguais
+                aos do agendamento, False caso contrário.
+        """
         return (
             agendamento.data == data and
             agendamento.hora_atendimento == hora_atendimento and
@@ -39,6 +53,20 @@ class Agenda:
             nome_doutor: str,
             agendamento: Agendamento
         ):
+            """
+            Verifica se o agendamento informado corresponde à data, hora de
+            atendimento e doutor informados.
+        
+            Args:
+                data (str): Data no formato ANO-MES-DIA.
+                hora_atendimento (str): Hora do início do atendimento.
+                nome_doutor (str): Nome do doutor.
+                agendamento (Agendamento): Agendamento a ser comparado.
+        
+            Returns:
+                bool: True se data, hora de atendimento e paciente forem iguais
+                    aos do agendamento, False caso contrário.
+            """
             return (
                 agendamento.data == data and
                 agendamento.hora_atendimento == hora_atendimento and
@@ -52,6 +80,25 @@ class Agenda:
         nome_doutor: Optional[str] = None,
         nome_paciente: Optional[str] = None
     ) -> Optional[Agendamento]:
+        """
+        Busca um agendamento pela data e hora de atendimento, combinadas
+        com o nome do doutor ou com o nome do paciente.
+
+        Se `nome_doutor` for informado, ele é usado primeiro. Se não for,
+        a busca usa `nome_paciente`. Se nenhum dos dois for informado,
+        nenhum agendamento é encontrado.
+
+        Args:
+            data (str): Data no formato ANO-MES-DIA.
+            hora_atendimento (str): Hora de início do atendimento.
+            nome_doutor (Optional[str], optional): Nome do profissional
+                responsável pelo atendimento.
+            nome_paciente (Optional[str], optional): Nome do paciente
+                agendado.
+        Returns:
+            Optional[Agendamento]: O primeiro agendamento que corresponder
+                aos critérios, ou None caso nenhum seja encontrado.
+        """
         for agendamento in self.__agendamentos:
                 
             if nome_doutor and self.__verificar_agendamento_por_doutor(
@@ -77,6 +124,18 @@ class Agenda:
         nome_doutor: str,
         hora_atendimento: str,
     ):
+        """
+        Validar disponibilidade de horário para uma data, hora e profissional especifico.
+
+        Args:
+            data (str): Data no formato ANO-MES-DIA.
+            nome_doutor (str): Nome do profissional.
+            hora_atendimento (str): Hora ao qual o atendimento vai se iniciar.
+
+        Raises:
+            HorarioReservadoErro: Se o horário desejado já estiver reservado,
+                este erro será lançado.
+        """
         if self.__buscar_agendamento(
             data,
             hora_atendimento,
@@ -93,6 +152,32 @@ class Agenda:
         hora_atendimento: int,
         duracao_minutos: int
     ) -> None:
+        """
+        Adiciona um novo agendamento com status MARCADO, caso os dados sejam
+        válidos e o horário esteja livre para o profissional.
+
+        Args:
+            nome_paciente (str): Nome do paciente.
+            nome_doutor (str): Nome do profissional responsável pelo atendimento.
+            data (str): Data no formato ANO-MES-DIA.
+            hora_atendimento (int): Hora de início do atendimento, entre 8 e 17.
+            duracao_minutos (int): Duração da consulta em minutos, entre 15 e 120
+                e múltipla de 15.
+
+        Raises:
+            HorarioForaIntervaloPermitidoErro: Se a hora de atendimento estiver
+                fora do intervalo permitido (8 às 17).
+            ConsultaIntervaloDuracaoErro: Se a duração for menor que 15 ou maior
+                que 120 minutos.
+            ConsultaMultiploDuracaoErro: Se a duração não for múltipla de 15.
+            FormatoDataInvalidaErro: Se a data for reconhecida, mas estiver fora
+                do padrão AAAA-MM-DD (ex.: '2026-1-5').
+            ValueError: Se o texto não for reconhecido como data ou a data não
+                existir (ex.: '05/10/2026', '2026-02-30').
+            TypeError: Se a data não for uma string.
+            HorarioReservadoErro: Se o horário desejado já estiver reservado,
+                este erro será lançado.
+        """
         agendamento = Agendamento(
             nome_paciente,
             nome_doutor,
@@ -118,6 +203,28 @@ class Agenda:
         nova_data: str,
         nova_hora_atendimento: str
     ):  
+        """Permite, caso a consulta informada exista, remarcar ela para outra data e/ou horário.
+
+        Args:
+            nome_paciente (str): Nome do paciente.
+            data (str): Data no formato ANO-MES-DIA.
+            hora_atendimento (str): Hora de início do atendimento.
+            nova_data (str): Nova data desejada para o atendimento.
+            nova_hora_atendimento (str): Novo horário desejado para o atendimento.
+
+        Raises:
+            AgendamentoNaoEncontradoErro: Caso a consulta a ser remarcada não exista, 
+                este erro será lançado.
+            HorarioForaIntervaloPermitidoErro: Caso o horário informado, seja o novo ou o antigo, 
+                esteja fora do intervalo permitido, este erro será lançado.
+            FormatoDataInvalidaErro: Se a data for reconhecida, mas estiver fora
+                do padrão AAAA-MM-DD (ex.: '2026-1-5').
+            ValueError: Se o texto não for reconhecido como data ou a data não
+                existir (ex.: '05/10/2026', '2026-02-30').
+            TypeError: Se a data não for uma string.
+            HorarioReservadoErro: Se o horário desejado já estiver reservado,
+                este erro será lançado.
+        """
         validar_hora_atendimento(hora_atendimento)
         validar_hora_atendimento(nova_hora_atendimento)
         validar_data(data)
@@ -143,6 +250,20 @@ class Agenda:
         agendamento.remarcar()
 
     def listar_por_data(self, data: str):
+        """Exibe no terminal os agendamentos filtrando pela data.
+
+        Se não houver agendamentos na data, nada é impresso.
+
+        Args:
+            data (str): Data no formato ANO-MES-DIA.
+
+        Raises:
+            FormatoDataInvalidaErro: Se a data for reconhecida, mas estiver fora
+                do padrão AAAA-MM-DD (ex.: '2026-1-5').
+            ValueError: Se o texto não for reconhecido como data ou a data não
+                existir (ex.: '05/10/2026', '2026-02-30').
+            TypeError: Se a data não for uma string.
+        """
         validar_data(data)
 
         for agendamento in self.__agendamentos:
