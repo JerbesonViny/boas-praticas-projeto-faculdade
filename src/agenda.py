@@ -14,6 +14,9 @@ from .agendamento_entidade import (
     AgendamentoStatus,
     Agendamento
 )
+from .apresentacao import (
+    formatar_agendamento,
+)
 
 class Agenda:
     def __init__(self):
@@ -249,13 +252,15 @@ class Agenda:
         agendamento.atualizar_hora_atendimento(nova_hora_atendimento)
         agendamento.remarcar()
 
-    def listar_por_data(self, data: str):
-        """Exibe no terminal os agendamentos filtrando pela data.
-
-        Se não houver agendamentos na data, nada é impresso.
+    def listar_por_data(self, data: str) -> List[Agendamento]:
+        """Busca os agendamentos de uma data, na ordem em que foram cadastrados.
 
         Args:
             data (str): Data no formato ANO-MES-DIA.
+
+        Returns:
+            List[Agendamento]: Agendamentos da data informada. A lista fica
+                vazia se não houver nenhum.
 
         Raises:
             FormatoDataInvalidaErro: Se a data for reconhecida, mas estiver fora
@@ -266,24 +271,54 @@ class Agenda:
         """
         validar_data(data)
 
-        for agendamento in self.__agendamentos:
-
-            if agendamento.data == data:
-                print(
-                    f'Data: {agendamento.data}; '
-                    f'Paciente: {agendamento.nome_paciente}; '
-                    f'Profissional: {agendamento.nome_doutor}; '
-                    f'Status: {agendamento.status}'
-                )
+        return [
+            agendamento
+            for agendamento in self.__agendamentos
+            if agendamento.data == data
+        ]
 
 
 if __name__ == '__main__':
     agenda = Agenda()
 
     agenda.adicionar(
-        nome_paciente='Jerbeson',
-        nome_doutor='Testerson',
-        data='2026-01-01',
-        hora_atendimento=18,
+        nome_paciente='Ana',
+        nome_doutor='Dr. Silva',
+        data='2026-10-05',
+        hora_atendimento=9,
         duracao_minutos=30
     )
+    print('Atendimento marcado para Ana')
+
+    try:
+        agenda.adicionar(
+            nome_paciente='Bruno',
+            nome_doutor='Dr. Silva',
+            data='2026-10-05',
+            hora_atendimento=9,
+            duracao_minutos=30
+        )
+        print('Atendimento marcado para Bruno')
+    except HorarioReservadoErro:
+        print('Horario ocupado')
+
+    agenda.adicionar(
+        nome_paciente='Carla',
+        nome_doutor='Dra. Souza',
+        data='2026-10-05',
+        hora_atendimento=14,
+        duracao_minutos=60
+    )
+    print('Atendimento marcado para Carla')
+
+    agenda.remarcar(
+        nome_paciente='Ana',
+        data='2026-10-05',
+        hora_atendimento=9,
+        nova_data='2026-10-06',
+        nova_hora_atendimento=10
+    )
+    print('Remarcado')
+
+    for agendamento in agenda.listar_por_data('2026-10-05'):
+        print(formatar_agendamento(agendamento))

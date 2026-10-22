@@ -11,7 +11,8 @@ from src.agenda_erros import (
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
 )
-from src.agendamento_entidade import AgendamentoStatus
+from src.agendamento_entidade import Agendamento, AgendamentoStatus
+from src.apresentacao import formatar_agendamento
 from src.utilitarios_erros import FormatoDataInvalidaErro
 from tests.dados_teste import (
     DATAS_COM_TIPO_INVALIDO,
@@ -66,12 +67,10 @@ class AgendaTestCase(unittest.TestCase):
         self.agenda.remarcar(**{**REMARCACAO_PADRAO, **dados})
 
     def _listar(self, data: str) -> str:
-        saida = io.StringIO()
-
-        with redirect_stdout(saida):
-            self.agenda.listar_por_data(data)
-
-        return saida.getvalue()
+        return ''.join(
+            f'{formatar_agendamento(agendamento)}\n'
+            for agendamento in self.agenda.listar_por_data(data)
+        )
 
 
 class TestAdicionarHorario(AgendaTestCase):
@@ -381,13 +380,31 @@ class TestBarreiraTipos(AgendaTestCase):
 
 
 class TestListarPorData(AgendaTestCase):
-    def test_agenda_vazia_nao_imprime_nada(self) -> None:
-        self.assertEqual(self._listar('2026-10-05'), '')
+    def test_agenda_vazia_retorna_lista_vazia(self) -> None:
+        self.assertEqual(self.agenda.listar_por_data('2026-10-05'), [])
 
-    def test_data_sem_agendamentos_nao_imprime_nada(self) -> None:
+    def test_data_sem_agendamentos_retorna_lista_vazia(self) -> None:
         self._adicionar({'data': '2026-10-05'})
 
-        self.assertEqual(self._listar('2026-10-06'), '')
+        self.assertEqual(self.agenda.listar_por_data('2026-10-06'), [])
+
+    def test_retorna_agendamentos(self) -> None:
+        self._adicionar({'nome_paciente': 'Ana'})
+
+        agendamentos = self.agenda.listar_por_data('2026-10-05')
+
+        self.assertEqual(len(agendamentos), 1)
+        self.assertIsInstance(agendamentos[0], Agendamento)
+        self.assertEqual(agendamentos[0].nome_paciente, 'Ana')
+
+    def test_nao_imprime_nada(self) -> None:
+        self._adicionar({})
+        saida = io.StringIO()
+
+        with redirect_stdout(saida):
+            self.agenda.listar_por_data('2026-10-05')
+
+        self.assertEqual(saida.getvalue(), '')
 
     def test_lista_paciente_e_profissional_da_data(self) -> None:
         self._adicionar({'nome_paciente': 'Ana', 'nome_doutor': 'Dr. Silva'})

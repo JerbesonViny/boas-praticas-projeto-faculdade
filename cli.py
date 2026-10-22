@@ -8,6 +8,7 @@ from src.agenda_erros import (
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
 )
+from src.apresentacao import formatar_agendamento
 from src.utilitarios_erros import FormatoDataInvalidaErro
 
 
@@ -65,7 +66,8 @@ def remarcar_atendimento(agenda: Agenda) -> None:
 
 
 def listar_atendimentos(agenda: Agenda) -> None:
-    agenda.listar_por_data(ler_texto('Data (AAAA-MM-DD)'))
+    for agendamento in agenda.listar_por_data(ler_texto('Data (AAAA-MM-DD)')):
+        print(formatar_agendamento(agendamento))
 
 
 OPCOES: Dict[str, Opcao] = {
