@@ -95,7 +95,7 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
     ```
     com um predicado `data_no_formato(data) -> bool` (não dá para usar `assert validar_data(data)`: o validador retorna `None` e o assert falharia sempre). Custo: duplica a lógica da ida e volta. Ganho: avisa se algum caminho novo chamar o núcleo sem passar pela barreira.
   - A suíte passa igual com `python3 -O -m unittest` — nenhum teste depende de `assert` (os `self.assert*` do `unittest` são métodos, não o comando `assert`).
-- **Testes com `unittest`** — 104 testes, um arquivo por módulo, cobrindo expediente, duração, data, conflito, remarcação, listagem, status, entidade, barreira de validação, isolamento entre instâncias e mensagens de erro. Usam `subTest` para listar cada valor inválido separadamente. Garantem que a refatoração não mudou o caminho feliz e documentam cada mudança intencional.
+- **Testes com `unittest`** — 109 testes, um arquivo por módulo, cobrindo expediente, duração, data, conflito, remarcação, listagem, status, entidade, barreira de validação, isolamento entre instâncias e mensagens de erro. Usam `subTest` para listar cada valor inválido separadamente. Garantem que a refatoração não mudou o caminho feliz e documentam cada mudança intencional.
 
   | Arquivo | Cobre |
   |---|---|
@@ -104,10 +104,11 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
   | `tests/test_agenda_utilitario.py` | Constantes de negócio; todas as horas 8–17; todos os múltiplos de 15 entre 15 e 120; precedência intervalo × múltiplo |
   | `tests/test_data_utilitarios.py` | `validar_data` e `FORMATO_DATA` |
   | `tests/test_erros.py` | Mensagens das seis exceções |
+  | `tests/test_apresentacao.py` | Formato de `formatar_agendamento` e saída do programa de demonstração idêntica à do código-base |
   | `tests/dados_teste.py` | Listas de datas inválidas compartilhadas |
 
   - Quatro testes marcados com `@unittest.expectedFailure` documentam os furos conhecidos (hora `8.5` e duração `45.0` aceitas). Quando forem corrigidos, o `unittest` acusa *unexpected success* — sinal para remover o decorador.
-  - Os testes de `listar_por_data` capturam a saída (`redirect_stdout`) e verificam só se cada informação aparece (`assertIn`), sem fixar o texto exato — o formato ainda vai mudar (ver pendências).
+  - Os testes de `listar_por_data` verificam a lista retornada (e que nada é impresso). O helper `_listar` monta o texto com `formatar_agendamento` para os testes que usam `assertIn`.
   - Como `'MARCADO'` está contido em `'REMARCADO'`, os testes de status também verificam que `REMARCADO` **não** aparece quando não deveria.
 
 ### Linhas para a Seção 4 (Mudanças de comportamento)
@@ -131,7 +132,7 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
 
 ### Etapa 2
 
-- [ ] **Programa de demonstração idêntico ao código-base.** A "regra de ouro" exige a mesma saída de hoje:
+- [x] **Programa de demonstração idêntico ao código-base.** A "regra de ouro" exige a mesma saída:
 
   ```
   Atendimento marcado para Ana
@@ -141,15 +142,15 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
   14 Carla Dra. Souza MARCADO
   ```
 
-  O `__main__` de `src/agenda.py` deve repetir as cinco chamadas do código-base (Ana, Bruno, Carla, `rem`, `lst`). Hoje ele chama `adicionar` às 18h e termina com `HorarioForaIntervaloPermitidoErro`.
+  Feito: o `__main__` de `src/agenda.py` repete as cinco chamadas do código-base (`python3 -m src.agenda`), e `tests/test_apresentacao.py` compara a saída com a do código-base, caractere a caractere.
 
-- [ ] **Caso do Bruno:** `adicionar` agora lança `HorarioReservadoErro` em vez de imprimir. O demo precisa capturar a exceção e imprimir `Horario ocupado`, senão a saída muda.
+- [x] ~~Caso do Bruno~~ — feito: o `__main__` captura só `HorarioReservadoErro` e imprime `Horario ocupado`.
 - [x] ~~Recriar `rem` (remarcar)~~ — feito como `remarcar`, reusando `__validar_disponibilidade_horario`.
 - [x] ~~Recriar `lst` (listar)~~ — feito como `listar_por_data`.
 - [x] ~~Status do atendimento~~ — feito: campo `status` + `AgendamentoStatus`.
 - [x] ~~Valores fixos soltos~~ — feito: constantes de expediente, duração e formato de data.
-- [ ] **Formato da listagem quebra a regra de ouro.** O `lst` do código-base imprime `hora paciente profissional status` → `14 Carla Dra. Souza MARCADO`. O `listar_por_data` imprime `Data: 2026-10-05; Paciente: Carla; Profissional: Dra. Souza; Status: MARCADO` — formato diferente e **sem a hora**. Ao mudar o formato, os testes de listagem continuam valendo (não fixam o texto).
-- [ ] **Impressão fora da lógica:** "quem agenda não imprime" — as mensagens (`Atendimento marcado para ...`, `Remarcado`) e a listagem devem sair do demo/camada de apresentação. Sugestão: `listar_por_data` **retorna** a lista de agendamentos da data e o `__main__`/CLI formata e imprime. Bônus: os testes deixam de precisar capturar `stdout`. (Se mudar, avisar para ajustar a CLI e os testes.)
+- [x] ~~Formato da listagem~~ — feito: `formatar_agendamento` gera `hora paciente profissional status` (`14 Carla Dra. Souza MARCADO`), usado pelo `__main__` e pela CLI.
+- [x] ~~Impressão fora da lógica~~ — feito: `listar_por_data` **retorna** `List[Agendamento]`; quem imprime é o `__main__` e a CLI, usando `formatar_agendamento` (`src/apresentacao.py`).
 - [ ] **Tipo errado:** `hora_atendimento`/`nova_hora_atendimento` estão anotados como `str` em `src/agenda.py` (vários métodos), em `Agendamento.atualizar_hora_atendimento` e em `validar_hora_atendimento`; deve ser `int`.
 
 ### Etapa 3
@@ -186,7 +187,7 @@ Até agora, o trabalho mistura duas etapas do enunciado — e isso define onde c
 
 **Prazo: 25/10/2026, 23h59** (atraso: −1,0 por dia). Entregáveis: código, `README.md`, relatório e `docs/` (ou o comando que gera, no README).
 
-1. Concluir a **Etapa 2**: programa de demonstração com a saída idêntica, formato da listagem e separar impressão da lógica.
+1. ~~Concluir a **Etapa 2**: programa de demonstração com a saída idêntica, formato da listagem e separar impressão da lógica.~~ Feito; falta só o tipo da hora (`str` → `int`).
 2. Completar a **Etapa 4**: mensagens com o valor e furo de tipo.
 3. **Etapa 3** por último, documentando o código já estável.
 
