@@ -180,16 +180,51 @@
 \begin{tabularx}{\textwidth}{|C{0.6cm}|>{\raggedright\arraybackslash}p{3.2cm}|L|}
   \hline
   \cab{\#} & \cab{Situação} & \cab{Como foi resolvida, ou por que ficou} \\ \hline
-  1  &  &  \\ \hline
-  2  &  &  \\ \hline
-  3  &  &  \\ \hline
-  4  &  &  \\ \hline
-  5  &  &  \\ \hline
-  6  &  &  \\ \hline
-  7  &  &  \\ \hline
-  8  &  &  \\ \hline
-  9  &  &  \\ \hline
-  10 &  &  \\ \hline
+  1  & Resolvida
+     & O \texttt{try}/\texttt{except: pass} foi removido. Cada regra violada
+       lança uma exceção específica (horário, duração, data, conflito e
+       agendamento inexistente), e erros inesperados sobem para quem chamou. \\ \hline
+  2  & Resolvida
+     & Os parâmetros passaram a se chamar \texttt{nome\_paciente},
+       \texttt{nome\_doutor}, \texttt{data}, \texttt{hora\_atendimento} e
+       \texttt{duracao\_minutos}, e as funções \texttt{add}, \texttt{rem} e
+       \texttt{lst} viraram \texttt{adicionar}, \texttt{remarcar} e
+       \texttt{listar\_por\_data}, seguindo a PEP 8. \\ \hline
+  3  & Resolvida
+     & O atendimento virou a classe \texttt{Agendamento}, com campos nomeados.
+       O status deixou de ser a string solta \texttt{"MARCADO"} e passou a usar
+       \texttt{AgendamentoStatus}. \\ \hline
+  4  & Resolvida
+     & \texttt{validar\_data} confere o formato AAAA-MM-DD em \texttt{adicionar}
+       (pelo \texttt{Agendamento}), \texttt{remarcar} e
+       \texttt{listar\_por\_data}. \\ \hline
+  5  & Resolvida
+     & \texttt{validar\_duracao} exige de 15 a 120 minutos, em múltiplos de 15.
+       Os limites viraram constantes nomeadas, e cada regra tem sua própria
+       exceção. \\ \hline
+  6  & Dívida assumida
+     & A busca continua percorrendo a lista. No volume de uma clínica (dezenas
+       de atendimentos por dia) o custo é desprezível, e indexar por data, hora
+       e profissional exigiria manter índices sincronizados a cada remarcação.
+       Como a busca está centralizada em \texttt{\_\_buscar\_agendamento}, a
+       troca, se for necessária, fica em um lugar só. \\ \hline
+  7  & Resolvida
+     & As regras de hora, duração e data foram para módulos próprios
+       (\texttt{agenda\_utilitario} e \texttt{data\_utilitarios}), o conflito é
+       verificado só em \texttt{\_\_validar\_disponibilidade\_horario} (usado
+       por \texttt{adicionar} e \texttt{remarcar}), e a mensagem de confirmação
+       saiu da \texttt{Agenda}. \\ \hline
+  8  & Resolvida
+     & Os \texttt{if} aninhados viraram cláusulas de guarda: cada validador
+       lança a exceção logo no início, e \texttt{adicionar} ficou linear (criar
+       o agendamento, verificar a disponibilidade e guardar). \\ \hline
+  9  & Resolvida
+     & O TODO, a função \texttt{desmarcar} comentada, o cabeçalho com
+       histórico de alterações (que já fica no Git) e os comentários de ruído
+       foram removidos. \\ \hline
+  10 & Resolvida
+     & O comentário ``lista os atendimentos do mês'' foi substituído pela
+       docstring de \texttt{listar\_por\_data}, que descreve o filtro por data. \\ \hline
 \end{tabularx}
 
 % =============================================================================
@@ -201,13 +236,36 @@
 % aqui é a justificativa, não a escolha — quase sempre há mais de uma resposta
 % defensável.
 
-\begin{tabularx}{\textwidth}{|L|L|L|}
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|L|L|}
   \hline
   \cab{Decisão tomada} & \cab{Alternativa descartada} & \cab{Por que decidimos assim} \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
+  O \texttt{Agendamento} se valida no construtor e em
+  \texttt{atualizar\_data} e \texttt{atualizar\_hora\_\allowbreak atendimento}.
+    & Validar só dentro da \texttt{Agenda} e tratar o \texttt{Agendamento}
+      como interno.
+    & Toda classe pública é uma porta de entrada: com a validação só na
+      \texttt{Agenda}, qualquer código conseguiria criar um agendamento
+      inválido diretamente. Assim, é impossível existir um agendamento
+      inválido. \\ \hline
+  Uma exceção própria por regra, com duas para a duração
+  (intervalo e múltiplo).
+    & Lançar \texttt{ValueError} genérico ou continuar com \texttt{print}.
+    & O tipo da exceção já diz qual regra foi violada, e quem chama pode
+      tratar cada caso separadamente. Quando a duração viola as duas regras,
+      o intervalo é verificado primeiro. \\ \hline
+  Validar a data por ida e volta: \texttt{strptime} seguido de
+  \texttt{strftime}, comparando com a entrada.
+    & Usar só \texttt{strptime}, só \texttt{date.fromisoformat} ou uma
+      expressão regular.
+    & \texttt{strptime} sozinho aceita \texttt{2026-1-5}, e
+      \texttt{fromisoformat} aceita \texttt{20261005}. A ida e volta recusa os
+      dois com uma ferramenta só, sem os cuidados que uma regex exigiria. \\ \hline
+  O \texttt{ValueError} do \texttt{strptime} sobe sem conversão.
+    & Capturar e relançar como \texttt{FormatoDataInvalidaErro}.
+    & Segue a convenção do Python (\texttt{ValueError} para valor inválido,
+      \texttt{TypeError} para tipo errado) e não esconde a mensagem original,
+      que diz o que está errado (ex.: dia fora do mês). Em troca, uma data
+      inválida pode gerar duas exceções diferentes. \\ \hline
 \end{tabularx}
 
 % =============================================================================
@@ -217,14 +275,41 @@
 % Registre cada mudança aqui. O caminho feliz não entra nesta tabela: se ele
 % mudou, houve um erro de refatoração.
 
-\begin{tabularx}{\textwidth}{|L|L|L|}
+\begin{tabularx}{\textwidth}{|L|L|>{\raggedright\arraybackslash}X|}
   \hline
   \cab{Entrada ou situação} & \cab{O que acontecia antes} & \cab{O que acontece agora} \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
-   &  &  \\ \hline
+  Marcar antes das 8h ou a partir das 18h (ex.: 20h)
+    & Nada: os \texttt{if} falhavam e a função saía sem marcar e sem avisar
+    & Lança \texttt{HorarioForaIntervalo\allowbreak PermitidoErro} \\ \hline
+  Remarcar com a hora atual ou a nova fora do expediente
+    & Remarcava normalmente, pois \texttt{rem} não validava a hora
+    & Lança \texttt{HorarioForaIntervalo\allowbreak PermitidoErro} \\ \hline
+  Duração menor que 15 ou maior que 120 minutos (inclusive zero ou negativa)
+    & Até zero, nada era marcado e nada era avisado; de 1 a 14 e acima de 120,
+      era aceita
+    & Lança \texttt{ConsultaIntervalo\allowbreak DuracaoErro} \\ \hline
+  Duração que não é múltiplo de 15 (ex.: 20, 50)
+    & Aceita
+    & Lança \texttt{ConsultaMultiplo\allowbreak DuracaoErro} \\ \hline
+  Profissional já ocupado na data e hora, ao marcar ou remarcar
+    & Imprimia \texttt{Horario ocupado}
+    & Lança \texttt{HorarioReservadoErro} \\ \hline
+  Remarcar um atendimento que não existe
+    & Nada: o laço não encontrava e a função saía em silêncio
+    & Lança \texttt{AgendamentoNao\allowbreak EncontradoErro} \\ \hline
+  Data fora do padrão (ex.: \texttt{2026-1-5}) ao marcar, remarcar ou listar
+    & Aceita como qualquer texto
+    & Lança \texttt{FormatoData\allowbreak InvalidaErro} \\ \hline
+  Data não reconhecida ou inexistente (ex.: \texttt{05/10/2026},
+  \texttt{2026-02-30})
+    & Aceita
+    & Lança \texttt{ValueError} \\ \hline
+  Data que não é texto (ex.: \texttt{None})
+    & Aceita
+    & Lança \texttt{TypeError} \\ \hline
+  Erro inesperado dentro da marcação
+    & Engolido pelo \texttt{except: pass}
+    & Sobe para quem chamou \\ \hline
 \end{tabularx}
 
 % =============================================================================
