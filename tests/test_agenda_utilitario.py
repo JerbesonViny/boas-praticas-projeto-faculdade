@@ -43,11 +43,25 @@ class TestValidarHoraAtendimento(unittest.TestCase):
         with self.assertRaises(TypeError):
             validar_hora_atendimento('10')
 
-    @unittest.expectedFailure
     def test_rejeita_hora_fracionada(self) -> None:
-        # Furo conhecido: a guarda verifica a faixa, mas nao o tipo.
+        for hora in [8.5, 10.0]:
+            with self.subTest(hora=hora):
+                with self.assertRaises(TypeError):
+                    validar_hora_atendimento(hora)
+
+    def test_tipo_eh_verificado_antes_do_expediente(self) -> None:
+        # 20.5 viola as duas regras; o tipo tem prioridade.
         with self.assertRaises(TypeError):
-            validar_hora_atendimento(8.5)
+            validar_hora_atendimento(20.5)
+
+    def test_mensagem_de_tipo_informa_valor_e_tipo(self) -> None:
+        with self.assertRaises(TypeError) as contexto:
+            validar_hora_atendimento('10')
+
+        self.assertEqual(
+            str(contexto.exception),
+            "Hora ('10') deve ser um numero inteiro, nao str."
+        )
 
 
 class TestValidarDuracao(unittest.TestCase):
@@ -76,18 +90,27 @@ class TestValidarDuracao(unittest.TestCase):
                     validar_duracao(duracao)
 
     def test_rejeita_duracao_fracionada_fora_do_multiplo(self) -> None:
-        with self.assertRaises(ConsultaMultiploDuracaoErro):
+        # 30.5 viola o tipo e o multiplo; o tipo tem prioridade.
+        with self.assertRaises(TypeError):
             validar_duracao(30.5)
 
     def test_rejeita_duracao_como_texto(self) -> None:
         with self.assertRaises(TypeError):
             validar_duracao('30')
 
-    @unittest.expectedFailure
     def test_rejeita_duracao_fracionada_multipla_de_15(self) -> None:
-        # Furo conhecido: 45.0 passa porque 45.0 % 15 == 0.
+        # 45.0 % 15 == 0: sem a verificacao de tipo, passaria.
         with self.assertRaises(TypeError):
             validar_duracao(45.0)
+
+    def test_mensagem_de_tipo_informa_valor_e_tipo(self) -> None:
+        with self.assertRaises(TypeError) as contexto:
+            validar_duracao(45.0)
+
+        self.assertEqual(
+            str(contexto.exception),
+            'Duracao (45.0) deve ser um numero inteiro, nao float.'
+        )
 
 
 if __name__ == '__main__':

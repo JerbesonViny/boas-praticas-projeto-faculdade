@@ -366,17 +366,20 @@ class TestBarreiraTipos(AgendaTestCase):
         with self.assertRaises(TypeError):
             self._adicionar({'duracao_minutos': '30'})
 
-    @unittest.expectedFailure
     def test_rejeita_hora_fracionada(self) -> None:
-        # Furo conhecido: a barreira verifica a faixa, mas nao o tipo.
         with self.assertRaises(TypeError):
             self._adicionar({'hora_atendimento': 8.5})
 
-    @unittest.expectedFailure
     def test_rejeita_duracao_fracionada(self) -> None:
-        # Furo conhecido: 45.0 passa porque 45.0 % 15 == 0.
+        # 45.0 % 15 == 0: sem a verificacao de tipo, passaria.
         with self.assertRaises(TypeError):
             self._adicionar({'duracao_minutos': 45.0})
+
+    def test_rejeita_nova_hora_fracionada_na_remarcacao(self) -> None:
+        self._adicionar({})
+
+        with self.assertRaises(TypeError):
+            self._remarcar({'nova_hora_atendimento': 10.5})
 
 
 class TestListarPorData(AgendaTestCase):

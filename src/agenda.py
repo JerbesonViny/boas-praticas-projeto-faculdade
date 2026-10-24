@@ -25,7 +25,7 @@ class Agenda:
     def __verificar_agendamento_por_paciente(
         self,
         data: str,
-        hora_atendimento: str,
+        hora_atendimento: int,
         nome_paciente: str,
         agendamento: Agendamento
     ):
@@ -35,7 +35,7 @@ class Agenda:
 
         Args:
             data (str): Data no formato ANO-MES-DIA.
-            hora_atendimento (str): Hora do início do atendimento.
+            hora_atendimento (int): Hora do início do atendimento.
             nome_paciente (str): Nome do paciente.
             agendamento (Agendamento): Agendamento a ser comparado.
 
@@ -52,7 +52,7 @@ class Agenda:
     def __verificar_agendamento_por_doutor(
             self,
             data: str,
-            hora_atendimento: str,
+            hora_atendimento: int,
             nome_doutor: str,
             agendamento: Agendamento
         ):
@@ -62,12 +62,12 @@ class Agenda:
         
             Args:
                 data (str): Data no formato ANO-MES-DIA.
-                hora_atendimento (str): Hora do início do atendimento.
+                hora_atendimento (int): Hora do início do atendimento.
                 nome_doutor (str): Nome do doutor.
                 agendamento (Agendamento): Agendamento a ser comparado.
         
             Returns:
-                bool: True se data, hora de atendimento e paciente forem iguais
+                bool: True se data, hora de atendimento e doutor forem iguais
                     aos do agendamento, False caso contrário.
             """
             return (
@@ -79,7 +79,7 @@ class Agenda:
     def __buscar_agendamento(
         self,
         data: str,
-        hora_atendimento: str,
+        hora_atendimento: int,
         nome_doutor: Optional[str] = None,
         nome_paciente: Optional[str] = None
     ) -> Optional[Agendamento]:
@@ -93,7 +93,7 @@ class Agenda:
 
         Args:
             data (str): Data no formato ANO-MES-DIA.
-            hora_atendimento (str): Hora de início do atendimento.
+            hora_atendimento (int): Hora de início do atendimento.
             nome_doutor (Optional[str], optional): Nome do profissional
                 responsável pelo atendimento.
             nome_paciente (Optional[str], optional): Nome do paciente
@@ -125,7 +125,7 @@ class Agenda:
         self,
         data: str,
         nome_doutor: str,
-        hora_atendimento: str,
+        hora_atendimento: int,
     ):
         """
         Validar disponibilidade de horário para uma data, hora e profissional especifico.
@@ -133,7 +133,7 @@ class Agenda:
         Args:
             data (str): Data no formato ANO-MES-DIA.
             nome_doutor (str): Nome do profissional.
-            hora_atendimento (str): Hora ao qual o atendimento vai se iniciar.
+            hora_atendimento (int): Hora ao qual o atendimento vai se iniciar.
 
         Raises:
             HorarioReservadoErro: Se o horário desejado já estiver reservado,
@@ -144,7 +144,11 @@ class Agenda:
             hora_atendimento,
             nome_doutor,
         ):
-            raise HorarioReservadoErro()
+            raise HorarioReservadoErro(
+                data=data,
+                hora_atendimento=hora_atendimento,
+                nome_doutor=nome_doutor,
+            )
 
 
     def adicionar(
@@ -177,7 +181,8 @@ class Agenda:
                 do padrão AAAA-MM-DD (ex.: '2026-1-5').
             ValueError: Se o texto não for reconhecido como data ou a data não
                 existir (ex.: '05/10/2026', '2026-02-30').
-            TypeError: Se a data não for uma string.
+            TypeError: Se a data não for uma string, ou se a hora de
+                atendimento ou a duração não forem números inteiros.
             HorarioReservadoErro: Se o horário desejado já estiver reservado,
                 este erro será lançado.
         """
@@ -202,18 +207,18 @@ class Agenda:
         self,
         nome_paciente: str,
         data: str,
-        hora_atendimento: str,
+        hora_atendimento: int,
         nova_data: str,
-        nova_hora_atendimento: str
+        nova_hora_atendimento: int
     ):  
         """Permite, caso a consulta informada exista, remarcar ela para outra data e/ou horário.
 
         Args:
             nome_paciente (str): Nome do paciente.
             data (str): Data no formato ANO-MES-DIA.
-            hora_atendimento (str): Hora de início do atendimento.
+            hora_atendimento (int): Hora de início do atendimento.
             nova_data (str): Nova data desejada para o atendimento.
-            nova_hora_atendimento (str): Novo horário desejado para o atendimento.
+            nova_hora_atendimento (int): Novo horário desejado para o atendimento.
 
         Raises:
             AgendamentoNaoEncontradoErro: Caso a consulta a ser remarcada não exista, 
@@ -224,7 +229,8 @@ class Agenda:
                 do padrão AAAA-MM-DD (ex.: '2026-1-5').
             ValueError: Se o texto não for reconhecido como data ou a data não
                 existir (ex.: '05/10/2026', '2026-02-30').
-            TypeError: Se a data não for uma string.
+            TypeError: Se a data não for uma string, ou se a hora de
+                atendimento não for um número inteiro.
             HorarioReservadoErro: Se o horário desejado já estiver reservado,
                 este erro será lançado.
         """
@@ -240,7 +246,11 @@ class Agenda:
         )
 
         if not agendamento:
-            raise AgendamentoNaoEncontradoErro()
+            raise AgendamentoNaoEncontradoErro(
+                nome_paciente=nome_paciente,
+                data=data,
+                hora_atendimento=hora_atendimento,
+            )
 
         self.__validar_disponibilidade_horario(
             data=nova_data,
