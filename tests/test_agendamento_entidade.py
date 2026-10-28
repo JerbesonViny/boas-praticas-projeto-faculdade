@@ -4,6 +4,7 @@ from typing import TypedDict
 from src.agenda_erros import (
     ConsultaIntervaloDuracaoErro,
     ConsultaMultiploDuracaoErro,
+    ConsultaTerminoForaExpedienteErro,
     HorarioForaIntervaloPermitidoErro,
 )
 from src.agendamento_entidade import Agendamento, AgendamentoStatus
@@ -57,6 +58,12 @@ class TestCriarAgendamento(unittest.TestCase):
     def test_rejeita_duracao_fora_do_intervalo(self) -> None:
         with self.assertRaises(ConsultaIntervaloDuracaoErro):
             criar_agendamento({'duracao_minutos': 0})
+
+    def test_rejeita_atendimento_que_termina_depois_do_expediente(
+        self,
+    ) -> None:
+        with self.assertRaises(ConsultaTerminoForaExpedienteErro):
+            criar_agendamento({'hora_atendimento': 17, 'duracao_minutos': 120})
 
     def test_rejeita_duracao_que_nao_eh_multiplo(self) -> None:
         with self.assertRaises(ConsultaMultiploDuracaoErro):
@@ -113,6 +120,16 @@ class TestAtualizarHoraAtendimento(unittest.TestCase):
 
         with self.assertRaises(HorarioForaIntervaloPermitidoErro):
             agendamento.atualizar_hora_atendimento(20)
+
+        self.assertEqual(agendamento.hora_atendimento, 9)
+
+    def test_hora_que_estoura_o_expediente_mantem_a_hora_original(
+        self,
+    ) -> None:
+        agendamento = criar_agendamento({'duracao_minutos': 120})
+
+        with self.assertRaises(ConsultaTerminoForaExpedienteErro):
+            agendamento.atualizar_hora_atendimento(17)
 
         self.assertEqual(agendamento.hora_atendimento, 9)
 

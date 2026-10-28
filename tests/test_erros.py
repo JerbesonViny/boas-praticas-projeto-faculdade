@@ -4,6 +4,7 @@ from src.agenda_erros import (
     AgendamentoNaoEncontradoErro,
     ConsultaIntervaloDuracaoErro,
     ConsultaMultiploDuracaoErro,
+    ConsultaTerminoForaExpedienteErro,
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
 )
@@ -61,6 +62,21 @@ class TestMensagensDeErro(unittest.TestCase):
             str(erro),
             'Duracao (50 minutos) invalida: '
             'a duracao da consulta deve ser um multiplo de 15.'
+        )
+
+    def test_termino_fora_expediente_informa_inicio_duracao_e_termino(
+        self,
+    ) -> None:
+        erro = ConsultaTerminoForaExpedienteErro(
+            hora_atendimento=17,
+            duracao_minutos=90,
+            horario_fim=18,
+        )
+
+        self.assertEqual(
+            str(erro),
+            'Atendimento as 17 com 90 minutos terminaria as 18:30, '
+            'depois do fim do expediente (18:00).'
         )
 
     def test_horario_reservado_informa_horario_e_profissional(self) -> None:

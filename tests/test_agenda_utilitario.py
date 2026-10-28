@@ -3,6 +3,7 @@ import unittest
 from src.agenda_erros import (
     ConsultaIntervaloDuracaoErro,
     ConsultaMultiploDuracaoErro,
+    ConsultaTerminoForaExpedienteErro,
     HorarioForaIntervaloPermitidoErro,
 )
 from src.agenda_utilitario import (
@@ -13,6 +14,7 @@ from src.agenda_utilitario import (
     CONSULTA_MULTIPLO_DURACAO_MINUTOS,
     validar_duracao,
     validar_hora_atendimento,
+    validar_termino_atendimento,
 )
 
 
@@ -111,6 +113,25 @@ class TestValidarDuracao(unittest.TestCase):
             str(contexto.exception),
             'Duracao (45.0) deve ser um numero inteiro, nao float.'
         )
+
+
+class TestValidarTerminoAtendimento(unittest.TestCase):
+    def test_aceita_atendimento_que_termina_exatamente_as_18h(self) -> None:
+        for hora, duracao in [(17, 60), (16, 120), (17, 15), (8, 120)]:
+            with self.subTest(hora=hora, duracao=duracao):
+                validar_termino_atendimento(
+                    hora_atendimento=hora,
+                    duracao_minutos=duracao,
+                )
+
+    def test_rejeita_atendimento_que_termina_depois_das_18h(self) -> None:
+        for hora, duracao in [(17, 75), (17, 120), (16, 135), (17, 90)]:
+            with self.subTest(hora=hora, duracao=duracao):
+                with self.assertRaises(ConsultaTerminoForaExpedienteErro):
+                    validar_termino_atendimento(
+                        hora_atendimento=hora,
+                        duracao_minutos=duracao,
+                    )
 
 
 if __name__ == '__main__':

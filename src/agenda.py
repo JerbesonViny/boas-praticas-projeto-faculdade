@@ -6,6 +6,7 @@ from .agenda_erros import (
 )
 from .agenda_utilitario import (
     validar_hora_atendimento,
+    validar_termino_atendimento,
 )
 from .data_utilitarios import (
     validar_data,
@@ -19,6 +20,8 @@ from .apresentacao import (
 )
 
 class Agenda:
+    """Agenda da clínica: guarda os agendamentos em memória e aplica as regras."""
+
     def __init__(self):
         self.__agendamentos: List[Agendamento] = []
 
@@ -177,6 +180,8 @@ class Agenda:
             ConsultaIntervaloDuracaoErro: Se a duração for menor que 15 ou maior
                 que 120 minutos.
             ConsultaMultiploDuracaoErro: Se a duração não for múltipla de 15.
+            ConsultaTerminoForaExpedienteErro: Se o atendimento terminar
+                depois das 18h.
             FormatoDataInvalidaErro: Se a data for reconhecida, mas estiver fora
                 do padrão AAAA-MM-DD (ex.: '2026-1-5').
             ValueError: Se o texto não for reconhecido como data ou a data não
@@ -225,6 +230,8 @@ class Agenda:
                 este erro será lançado.
             HorarioForaIntervaloPermitidoErro: Caso o horário informado, seja o novo ou o antigo, 
                 esteja fora do intervalo permitido, este erro será lançado.
+            ConsultaTerminoForaExpedienteErro: Se, no novo horário, o
+                atendimento terminar depois das 18h.
             FormatoDataInvalidaErro: Se a data for reconhecida, mas estiver fora
                 do padrão AAAA-MM-DD (ex.: '2026-1-5').
             ValueError: Se o texto não for reconhecido como data ou a data não
@@ -251,6 +258,11 @@ class Agenda:
                 data=data,
                 hora_atendimento=hora_atendimento,
             )
+
+        validar_termino_atendimento(
+            hora_atendimento=nova_hora_atendimento,
+            duracao_minutos=agendamento.duracao_minutos,
+        )
 
         self.__validar_disponibilidade_horario(
             data=nova_data,

@@ -6,7 +6,7 @@ Detalhes e justificativas de cada item estão em `ANOTACOES.md`.
 
 ## 1. Decisões a tomar
 
-- [ ] **Status `REMARCADO`:** o `rem` do código-base mantinha `MARCADO`. Decidir entre voltar a manter `MARCADO` ou manter `REMARCADO` e justificar na Seção 3 do relatório. Isso muda o caminho feliz, e sem justificativa custa −1,0.
+- [x] ~~**Status `REMARCADO`:** o `rem` do código-base mantinha `MARCADO`. Decidir entre voltar a manter `MARCADO` ou manter `REMARCADO` e justificar na Seção 3 do relatório. Isso muda o caminho feliz, e sem justificativa custa −1,0.~~ Mantido de propósito, justificado na Seção 3.
 - [ ] **`remarcar` valida a hora original:** remarcar "das 20h" lança `HorarioForaIntervaloPermitidoErro`, e não `AgendamentoNaoEncontradoErro`. Decidir se mantém.
 
 ## 2. Código
@@ -17,14 +17,14 @@ Detalhes e justificativas de cada item estão em `ANOTACOES.md`.
 
 ## 3. Documentação
 
-- [ ] **Docstrings** (Args, Returns, Raises) em toda função pública:
-  - [ ] `src/agendamento_entidade.py`:
+- [x] ~~**Docstrings** (Args, Returns, Raises) em toda função pública:~~
+  - [x] ~~`src/agendamento_entidade.py`:~~
     - [x] ~~`marcar` e `remarcar`~~.
     - [x] ~~Construtor~~.
-    - [ ] `se_validar`, `atualizar_data` e `atualizar_hora_atendimento`: já têm docstring, mas falta o `Raises` (as exceções dos validadores: `HorarioForaIntervaloPermitidoErro`, `ConsultaIntervaloDuracaoErro`, `ConsultaMultiploDuracaoErro`, `FormatoDataInvalidaErro`, `ValueError`, `TypeError`).
-  - [ ] `src/agenda_utilitario.py`: `validar_hora_atendimento` e `validar_duracao`.
-  - [ ] `src/data_utilitarios.py`: `validar_data`.
-  - [ ] `cli.py`.
+    - [x] ~~`se_validar`, `atualizar_data` e `atualizar_hora_atendimento`: já têm docstring, mas falta o `Raises` (as exceções dos validadores: `HorarioForaIntervaloPermitidoErro`, `ConsultaIntervaloDuracaoErro`, `ConsultaMultiploDuracaoErro`, `FormatoDataInvalidaErro`, `ValueError`, `TypeError`).~~
+  - [x] ~~`src/agenda_utilitario.py`: `validar_hora_atendimento` e `validar_duracao`.~~
+  - [x] ~~`src/data_utilitarios.py`: `validar_data`.~~
+  - [x] ~~`cli.py`.~~
 - [x] ~~**Ajustes nas docstrings de `src/agenda.py`:**~~
   - [x] ~~No `Returns` de `__verificar_agendamento_por_doutor`, trocar "paciente" por "doutor".~~
   - [x] ~~Trocar os `(str)` da hora por `(int)` quando o tipo for corrigido.~~
@@ -33,15 +33,15 @@ Detalhes e justificativas de cada item estão em `ANOTACOES.md`.
   - o `ValueError` do `strptime` subindo sem conversão;
   - o `AGENDAMENTO_HORA_LIMITE - 1` na mensagem de expediente;
   - o `FORMATO_DATA` morando em `constantes.py`.
-- [ ] **`README.md` na raiz:** o que é o sistema, como executar (`python3 -m src.agenda`, `python3 cli.py`, `python3 -m unittest`), como gerar a documentação e quem fez.
+- [x] ~~**`README.md` na raiz:** o que é o sistema, como executar (`python3 -m src.agenda`, `python3 cli.py`, `python3 -m unittest`), como gerar a documentação e quem fez.~~
 - [ ] **Documentação de API:** gerar com `pdoc` ou `sphinx-apidoc` na pasta `docs/`, ou deixar o comando no README. Hoje `docs/README.md` está vazio.
 
 ## 4. Relatório (`relatorio.tex`)
 
-- [ ] **Identificação:** preencher integrantes e matrícula, e trocar o repositório por `https://github.com/JerbesonViny/boas-praticas-projeto-faculdade`.
-- [ ] **`\integrantes`:** trocar o `\\` por `\newline`, porque o `\\` quebra a tabela de identificação.
+- [x] ~~**Identificação:** preencher integrantes e matrícula, e trocar o repositório por `https://github.com/JerbesonViny/boas-praticas-projeto-faculdade`.~~
+- [x] ~~**`\integrantes`:** trocar o `\\` por `\newline`, porque o `\\` quebra a tabela de identificação.~~
 - [ ] **Seções 2, 3 e 4:** revisar o rascunho e reescrever no seu estilo.
-- [ ] **Seção 3:** registrar a decisão sobre o status `REMARCADO`, se ele for mantido.
+- [x] ~~**Seção 3:** registrar a decisão sobre o status `REMARCADO`, se ele for mantido.~~
 - [ ] **Seção 5:** comandos de execução, de geração da documentação, a pasta `docs/` e a saída da demonstração.
 - [ ] **Seção 6:** declarar o uso de IA (obrigatório).
 - [ ] **Tamanho:** são 7 páginas para um limite de 4.

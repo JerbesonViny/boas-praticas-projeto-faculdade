@@ -8,6 +8,7 @@ from src.agenda_erros import (
     AgendamentoNaoEncontradoErro,
     ConsultaIntervaloDuracaoErro,
     ConsultaMultiploDuracaoErro,
+    ConsultaTerminoForaExpedienteErro,
     HorarioForaIntervaloPermitidoErro,
     HorarioReservadoErro,
 )
@@ -87,6 +88,15 @@ class TestAdicionarHorario(AgendaTestCase):
     def test_rejeita_horario_apos_o_expediente(self) -> None:
         with self.assertRaises(HorarioForaIntervaloPermitidoErro):
             self._adicionar({'hora_atendimento': 18})
+
+    def test_aceita_atendimento_que_termina_as_18h(self) -> None:
+        self._adicionar({'hora_atendimento': 17, 'duracao_minutos': 60})
+
+    def test_rejeita_atendimento_que_termina_depois_das_18h(self) -> None:
+        with self.assertRaises(ConsultaTerminoForaExpedienteErro):
+            self._adicionar({'hora_atendimento': 17, 'duracao_minutos': 120})
+
+        self.assertEqual(self._listar('2026-10-05'), '')
 
 
 class TestAdicionarDuracao(AgendaTestCase):
@@ -260,6 +270,38 @@ class TestRemarcar(AgendaTestCase):
     def test_rejeita_nova_hora_apos_o_expediente(self) -> None:
         with self.assertRaises(HorarioForaIntervaloPermitidoErro):
             self._remarcar({'nova_hora_atendimento': 20})
+
+    def test_rejeita_nova_hora_que_estoura_o_expediente(self) -> None:
+        self._adicionar({
+            'nome_paciente': 'Bruno',
+            'hora_atendimento': 14,
+            'duracao_minutos': 120,
+        })
+
+        with self.assertRaises(ConsultaTerminoForaExpedienteErro):
+            self._remarcar({
+                'nome_paciente': 'Bruno',
+                'hora_atendimento': 14,
+                'nova_hora_atendimento': 17,
+            })
+
+    def test_remarcacao_que_estoura_o_expediente_mantem_tudo(self) -> None:
+        self._adicionar({
+            'nome_paciente': 'Bruno',
+            'hora_atendimento': 14,
+            'duracao_minutos': 120,
+        })
+
+        with self.assertRaises(ConsultaTerminoForaExpedienteErro):
+            self._remarcar({
+                'nome_paciente': 'Bruno',
+                'hora_atendimento': 14,
+                'nova_data': '2026-10-06',
+                'nova_hora_atendimento': 17,
+            })
+
+        self.assertIn('14 Bruno Dr. Silva MARCADO', self._listar('2026-10-05'))
+        self.assertEqual(self._listar('2026-10-06'), '')
 
     def test_rejeita_nova_data_fora_do_padrao(self) -> None:
         for nova_data in DATAS_FORA_DO_PADRAO:

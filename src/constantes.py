@@ -1,1 +1,2 @@
 FORMATO_DATA = '%Y-%m-%d'
+MINUTOS_POR_HORA = 60

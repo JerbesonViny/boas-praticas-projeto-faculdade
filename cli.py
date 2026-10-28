@@ -1,119 +1,90 @@
-from typing import Callable, Dict, NamedTuple
+"""Programa de demonstração do AgendaFácil.
+
+Reproduz o cenário do código-base: as mensagens ao usuário ficam aqui, e a
+Agenda apenas aplica as regras e lança exceções.
+"""
 
 from src.agenda import Agenda
-from src.agenda_erros import (
-    AgendamentoNaoEncontradoErro,
-    ConsultaIntervaloDuracaoErro,
-    ConsultaMultiploDuracaoErro,
-    HorarioForaIntervaloPermitidoErro,
-    HorarioReservadoErro,
-)
+from src.agenda_erros import HorarioReservadoErro
 from src.apresentacao import formatar_agendamento
-from src.utilitarios_erros import FormatoDataInvalidaErro
+
+agenda = Agenda()
 
 
-# A Agenda lança as exceções para o topo; aqui elas são capturadas apenas
-# para mostrar a mensagem ao usuário sem encerrar o programa.
-ERROS_EXIBIDOS = (
-    AgendamentoNaoEncontradoErro,
-    ConsultaIntervaloDuracaoErro,
-    ConsultaMultiploDuracaoErro,
-    FormatoDataInvalidaErro,
-    HorarioForaIntervaloPermitidoErro,
-    HorarioReservadoErro,
-    ValueError,
-    TypeError,
-)
+def marcar(
+    nome_paciente: str,
+    nome_doutor: str,
+    data: str,
+    hora_atendimento: int,
+    duracao_minutos: int,
+) -> None:
+    """
+    Marca um atendimento e informa se o horário já estava ocupado.
+
+    Args:
+        nome_paciente (str): Nome do paciente.
+        nome_doutor (str): Nome do profissional responsável pelo atendimento.
+        data (str): Data no formato ANO-MES-DIA.
+        hora_atendimento (int): Hora de início do atendimento.
+        duracao_minutos (int): Duração da consulta em minutos.
+    """
+    try:
+        agenda.adicionar(
+            nome_paciente=nome_paciente,
+            nome_doutor=nome_doutor,
+            data=data,
+            hora_atendimento=hora_atendimento,
+            duracao_minutos=duracao_minutos,
+        )
+        print('Atendimento marcado para', nome_paciente)
+    except HorarioReservadoErro:
+        print('Horario ocupado')
 
 
-class Opcao(NamedTuple):
-    descricao: str
-    acao: Callable[[Agenda], None]
+def remarcar(
+    nome_paciente: str,
+    data: str,
+    hora_atendimento: int,
+    nova_data: str,
+    nova_hora_atendimento: int,
+) -> None:
+    """
+    Remarca um atendimento e informa se o novo horário já estava ocupado.
+
+    Args:
+        nome_paciente (str): Nome do paciente.
+        data (str): Data atual do atendimento, no formato ANO-MES-DIA.
+        hora_atendimento (int): Hora atual de início do atendimento.
+        nova_data (str): Nova data desejada para o atendimento.
+        nova_hora_atendimento (int): Novo horário desejado para o atendimento.
+    """
+    try:
+        agenda.remarcar(
+            nome_paciente=nome_paciente,
+            data=data,
+            hora_atendimento=hora_atendimento,
+            nova_data=nova_data,
+            nova_hora_atendimento=nova_hora_atendimento,
+        )
+        print('Remarcado')
+    except HorarioReservadoErro:
+        print('Horario ocupado')
 
 
-def ler_texto(rotulo: str) -> str:
-    return input(f'{rotulo}: ')
+def listar(data: str) -> None:
+    """
+    Exibe os atendimentos de uma data, um por linha.
 
-
-def ler_inteiro(rotulo: str) -> int:
-    return int(ler_texto(rotulo))
-
-
-def marcar_atendimento(agenda: Agenda) -> None:
-    nome_paciente = ler_texto('Paciente')
-
-    agenda.adicionar(
-        nome_paciente=nome_paciente,
-        nome_doutor=ler_texto('Profissional'),
-        data=ler_texto('Data (AAAA-MM-DD)'),
-        hora_atendimento=ler_inteiro('Hora (8 a 17)'),
-        duracao_minutos=ler_inteiro('Duracao (15 a 120 min, multiplo de 15)'),
-    )
-
-    print(f'Atendimento marcado para {nome_paciente}')
-
-
-def remarcar_atendimento(agenda: Agenda) -> None:
-    agenda.remarcar(
-        nome_paciente=ler_texto('Paciente'),
-        data=ler_texto('Data atual (AAAA-MM-DD)'),
-        hora_atendimento=ler_inteiro('Hora atual'),
-        nova_data=ler_texto('Nova data (AAAA-MM-DD)'),
-        nova_hora_atendimento=ler_inteiro('Nova hora'),
-    )
-
-    print('Remarcado')
-
-
-def listar_atendimentos(agenda: Agenda) -> None:
-    for agendamento in agenda.listar_por_data(ler_texto('Data (AAAA-MM-DD)')):
+    Args:
+        data (str): Data no formato ANO-MES-DIA.
+    """
+    for agendamento in agenda.listar_por_data(data):
         print(formatar_agendamento(agendamento))
 
 
-OPCOES: Dict[str, Opcao] = {
-    '1': Opcao('Marcar atendimento', marcar_atendimento),
-    '2': Opcao('Remarcar atendimento', remarcar_atendimento),
-    '3': Opcao('Listar atendimentos por data', listar_atendimentos),
-}
-
-OPCAO_SAIR = '0'
-
-
-def exibir_menu() -> None:
-    print('\n=== AgendaFacil ===')
-
-    for numero, opcao in OPCOES.items():
-        print(f'{numero} - {opcao.descricao}')
-
-    print(f'{OPCAO_SAIR} - Sair')
-
-
-def executar(agenda: Agenda) -> None:
-    while True:
-        exibir_menu()
-        escolha = ler_texto('Opcao').strip()
-
-        if escolha == OPCAO_SAIR:
-            return
-
-        opcao = OPCOES.get(escolha)
-
-        if opcao is None:
-            print(f'Opcao invalida: {escolha!r}')
-            continue
-
-        try:
-            opcao.acao(agenda)
-        except ERROS_EXIBIDOS as erro:
-            print(f'Erro ({type(erro).__name__}): {erro}')
-
-
-def main() -> None:
-    try:
-        executar(Agenda())
-    except (EOFError, KeyboardInterrupt):
-        print()
-
-
 if __name__ == '__main__':
-    main()
+    marcar(nome_paciente='Ana', nome_doutor='Dr. Silva', data='2026-10-05', hora_atendimento=9, duracao_minutos=30)
+    marcar(nome_paciente='Bruno', nome_doutor='Dr. Silva', data='2026-10-05', hora_atendimento=9, duracao_minutos=30)
+    marcar(nome_paciente='Carla', nome_doutor='Dra. Souza', data='2026-10-05', hora_atendimento=14, duracao_minutos=60)
+    remarcar(nome_paciente='Ana', data='2026-10-05', hora_atendimento=9, nova_data='2026-10-06', nova_hora_atendimento=10)
+    listar(data='2026-10-05')
